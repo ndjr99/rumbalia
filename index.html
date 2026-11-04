@@ -737,6 +737,43 @@
             line-height: 1.7;
         }
 
+        .btn-editar-borrador {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: #ffffff;
+            color: #2563eb;
+            border: 1px solid #2563eb;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-editar-borrador:hover {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+            transform: translateY(-2px);
+        }
+
+        .btn-editar-borrador:active {
+            transform: translateY(0);
+        }
+
+        .btn-editar-borrador:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.3);
+            outline-offset: 3px;
+        }
+
+        .btn-editar-borrador svg {
+            width: 16px;
+            height: 16px;
+        }
+
     </style>
 </head>
 <body>
@@ -1343,30 +1380,122 @@
 
         // ASESOR: MIS PLANES
         async function cargarPlanesAsesor() {
-            const idAsesor = estadoSesion ? estadoSesion.id_usuario : 1;
-            const res = await fetch(`${API_URL}/asesor/mis-planes/${idAsesor}`);
-            const planes = await res.json();
+            const contenedor = document.getElementById("contenedor-mis-planes");
 
-            const cont = document.getElementById("contenedor-mis-planes");
-            cont.innerHTML = "";
+            if (!contenedor) return;
 
-            if (planes.length === 0) {
-                cont.innerHTML = `<p style="color:var(--texto-gris);">Aún no has creado planes turísticos.</p>`;
+            const idAsesor = estadoSesion?.id_usuario;
+
+            if (!idAsesor) {
+                contenedor.innerHTML = "<p>Debes iniciar sesión como asesor.</p>";
                 return;
             }
 
-            planes.forEach(p => {
-                const est = p.estado.toLowerCase();
-                cont.innerHTML += `
+            contenedor.innerHTML = "<p>Cargando tus planes...</p>";
+
+            try {
+                const respuesta = await fetch(
+                    `${API_URL}/asesor/mis-planes/${idAsesor}`
+                );
+
+                const planes = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(planes.error || "No se pudieron cargar los planes.");
+                }
+
+                if (!planes.length) {
+                    contenedor.innerHTML = "<p>Aún no tienes planes creados.</p>";
+                    return;
+                }
+
+                contenedor.innerHTML = planes.map(plan => `
                     <div class="item-plan-filas">
                         <div>
-                            <h3>${p.nombre}</h3>
-                            <p>Desde ${Number(p.costo_estimado).toLocaleString("es-CO")} COP</p>
+                            <h3>${escapeHTML(plan.nombre)}</h3>
+                            <p>Duración: ${plan.duracion_dias} días</p>
+                            <p>Costo: $${Number(plan.costo_estimado).toLocaleString("es-CO")} COP</p>
+                            <span class="estado-plan">
+                                ${escapeHTML(plan.estado)}
+                            </span>
                         </div>
-                        <span class="badge-estado ${est}">${p.estado}</span>
+
+                        ${
+                            plan.estado === "Borrador"
+                            ? `
+                                <button
+                                    type="button"
+                                    onclick="abrirBorrador(${plan.id_plan})"
+                                    class="btn-editar-borrador">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M12 20h9"/>
+                                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>
+                                    </svg>
+                                    Editar borrador
+                                </button>
+                            `
+                            : ""
+                        }
                     </div>
+                `).join("");
+
+            } catch (error) {
+                console.error(error);
+                contenedor.innerHTML = `
+                    <p>${escapeHTML(error.message)}</p>
                 `;
-            });
+            }
+        }
+
+        async function abrirBorrador(idPlan) {
+            try {
+                const respuesta = await fetch(
+                    `${API_URL}/asesor/planes/${idPlan}`
+                );
+
+                const plan = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(
+                        plan.error || "No fue posible abrir el borrador."
+                    );
+                }
+
+                // Recuperar el plan existente.
+                planActualObjeto = plan;
+                idPlanActual = plan.id_plan;
+
+                // Recuperar los datos comerciales.
+                document.getElementById("crear-incluye").value =
+                    plan.incluye || "";
+
+                document.getElementById("crear-no-incluye").value =
+                    plan.no_incluye || "";
+
+                document.getElementById("ia-costo-input").value =
+                    plan.costo_estimado || "";
+
+                // Recuperar el itinerario editable.
+                renderItinerarioEditables(
+                    plan.itinerario.dias
+                );
+
+                // Abrir la pantalla de edición.
+                mostrarVista("asesor-resultado-ia");
+
+                mostrarToast("Borrador cargado correctamente.");
+
+            } catch (error) {
+                console.error(error);
+                mostrarToast(error.message, true);
+            }
         }
 
         // ASESOR: GENERAR IA
@@ -1594,13 +1723,97 @@
         }
 
         async function guardarBorradorEditado() {
-            if (!idPlanActual || !planActualObjeto) return;
-            const dias = planActualObjeto.itinerario.dias.map((d, i) => ({numero_dia:d.numero_dia, descripcion_resumen:document.getElementById(`edit-dia-${i}`).value.trim()}));
+            if (!idPlanActual || !planActualObjeto) {
+                mostrarToast("No hay un borrador seleccionado.", true);
+                return;
+            }
+
             try {
-                const res = await fetch(`${API_URL}/planes/${idPlanActual}/itinerario`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dias})});
-                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'No se pudo guardar.');
-                planActualObjeto.itinerario.dias = dias; mostrarToast('Itinerario actualizado correctamente.'); mostrarVista('asesor-mis-planes');
-            } catch (e) { mostrarToast(e.message, true); }
+                // Obtener los días editados.
+                const dias = planActualObjeto.itinerario.dias.map((dia, i) => ({
+                    numero_dia: dia.numero_dia,
+                    descripcion_resumen: document
+                        .getElementById(`edit-dia-${i}`)
+                        .value.trim()
+                }));
+
+                // Obtener la información comercial.
+                const incluye = document
+                    .getElementById("crear-incluye")
+                    .value.trim();
+
+                const noIncluye = document
+                    .getElementById("crear-no-incluye")
+                    .value.trim();
+
+                const costo = document
+                    .getElementById("ia-costo-input")
+                    .value;
+
+                if (!incluye || !noIncluye || !costo) {
+                    mostrarToast(
+                        "Completa el costo, lo que incluye y lo que no incluye.",
+                        true
+                    );
+                    return;
+                }
+
+                // Guardar itinerario.
+                const respuestaItinerario = await fetch(
+                    `${API_URL}/planes/${idPlanActual}/itinerario`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ dias })
+                    }
+                );
+
+                const resultadoItinerario = await respuestaItinerario.json();
+
+                if (!respuestaItinerario.ok) {
+                    throw new Error(
+                        resultadoItinerario.error ||
+                        "No se pudo guardar el itinerario."
+                    );
+                }
+
+                // Guardar información comercial.
+                const respuestaInformacion = await fetch(
+                    `${API_URL}/planes/${idPlanActual}/informacion`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            incluye: incluye,
+                            no_incluye: noIncluye,
+                            costo_estimado: costo
+                        })
+                    }
+                );
+
+                const resultadoInformacion = await respuestaInformacion.json();
+
+                if (!respuestaInformacion.ok) {
+                    throw new Error(
+                        resultadoInformacion.error ||
+                        "No se pudo guardar la información comercial."
+                    );
+                }
+
+                planActualObjeto = resultadoItinerario.plan;
+
+                mostrarToast("Borrador actualizado correctamente.");
+
+                mostrarVista("asesor-mis-planes");
+
+            } catch (error) {
+                console.error(error);
+                mostrarToast(error.message, true);
+            }
         }
 
         

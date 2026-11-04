@@ -301,7 +301,44 @@ def obtener_planes_asesor(id_asesor):
             "error": "Error al obtener los planes del asesor."
         }), 500
 
+@app.route(
+    "/api/asesor/planes/<int:id_plan>",
+    methods=["GET"]
+)
+def obtener_borrador_asesor(id_plan):
+    usuario, error = requiere_rol("asesor")
 
+    if error:
+        return error
+
+    try:
+        plan = PlanesController.buscar_plan(id_plan)
+
+        if not plan:
+            return jsonify({
+                "error": "Plan no encontrado."
+            }), 404
+
+        if plan.id_asesor != usuario["id_usuario"]:
+            return jsonify({
+                "error": "No puedes consultar un plan de otro asesor."
+            }), 403
+
+        if plan.estado != "Borrador":
+            return jsonify({
+                "error": "Solo puedes editar planes en borrador."
+            }), 409
+
+        return jsonify(plan.to_dict()), 200
+
+    except Exception:
+        app.logger.exception(
+            "Error al recuperar el borrador del asesor"
+        )
+
+        return jsonify({
+            "error": "No fue posible recuperar el borrador."
+        }), 500
 # ============================================================
 # CREAR PLAN Y GENERAR ITINERARIO
 # ============================================================
