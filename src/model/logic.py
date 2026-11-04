@@ -1,6 +1,9 @@
-
 import os
 import re
+import sys
+
+# Buscar archivos secretos de Render
+sys.path.insert(0, "/etc/secrets")
 
 from werkzeug.security import generate_password_hash, check_password_hash
 

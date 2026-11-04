@@ -15,6 +15,9 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+# Buscar archivos secretos de Render
+sys.path.insert(0, "/etc/secrets")
+
 import psycopg2
 import secret_config
 

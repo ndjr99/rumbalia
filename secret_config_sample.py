@@ -1,5 +1,4 @@
 # Recuerde poner aquí los datos de conexión y guardar como secret_config.py
-import os
 
 # ==========================================
 # CONFIGURACIÓN DE BASE DE DATOS POSTGRESQL
