@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empresa de viajes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* =====================================================================
+           PALETA DEFINIDA (diapositiva "Paleta de colores y tipografía")
+           Azul marino #15397A · Gris texto #666666 · Azul claro #EAF0FA · Blanco #FFFFFF
+           Tipografía: Inter
+           Se mantienen los nombres de variables del HTML original.
+           ===================================================================== */
+        :root {
+            --azul-principal: #15397A;      /* institucional, botones, navegación */
+            --azul-oscuro: #0E2A5C;         /* solo hover / botón presionado */
+            --azul-caja-ia: #EAF0FA;        /* fondos de tarjetas destacadas */
+            --azul-borde-ia: #BFCDE6;
+            --texto-oscuro: #1A1A1A;        /* títulos y texto principal */
+            --texto-gris: #666666;          /* texto secundario */
+            --gris-borde: #DDDDDD;          /* bordes de tarjetas */
+
+            /* Estados del plan (tomados del Figma) */
+            --badge-verde-bg: #D5EAD6;
+            --badge-verde-txt: #3B6B3F;
+            --badge-naranja-bg: #F3DAC9;
+            --badge-naranja-txt: #94603F;
+            --badge-gris-bg: #EEEEEE;
+
+            /* Único color fuera de la paleta: errores de validación */
+            --error: #B42318;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #FFFFFF;
+            color: var(--texto-oscuro);
+            min-height: 100vh;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--azul-principal);
+            outline-offset: 2px;
+        }
+
+        .oculto { display: none !important; }
+
+        /* ---------------- HEADER ---------------- */
+        header {
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--texto-gris);
+            padding: 1.1rem 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--texto-oscuro);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        nav.menu-nav {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        nav.menu-nav a {
+            text-decoration: none;
+            color: var(--texto-oscuro);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        nav.menu-nav a:hover,
+        nav.menu-nav a.activo {
+            font-weight: 700;
+        }
+
+        .avatar-wrap { position: relative; }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--azul-principal);
+            background: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--azul-principal);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .menu-usuario {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 180px;
+            background: #FFFFFF;
+            border: 1px solid var(--gris-borde);
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            padding: 0.4rem;
+            z-index: 20;
+        }
+
+        .menu-usuario .nombre-usuario {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            color: var(--texto-gris);
+        }
+
+        .menu-usuario button {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: none;
+            padding: 0.55rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            color: var(--texto-oscuro);
+        }
+
+        .menu-usuario button:hover { background: var(--azul-caja-ia); }
+
+        /* ---------------- BOTONES PÍLDORA (azul marino) ---------------- */
+        .btn-nav-login,
+        .btn-buscar,
+        .btn-reservar,
+        .btn-crear-nuevo,
+        .btn-centrado-ia,
+        .btn-solid-blue {
+            background-color: var(--azul-principal);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.15s;
+        }
+
+        .btn-nav-login:hover,
+        .btn-buscar:hover,
+        .btn-reservar:hover,
+        .btn-crear-nuevo:hover,
+        .btn-centrado-ia:hover,
+        .btn-solid-blue:hover {
+            background-color: var(--azul-oscuro);
+        }
+
+        .btn-nav-login { padding: 0.65rem 2.2rem; font-size: 0.95rem; }
+
+        .btn-outline-blue {
+            background: #FFFFFF;
+            color: var(--azul-principal);
+            border: 1px solid var(--azul-principal);
+            padding: 0.8rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-outline-blue:hover { background: var(--azul-caja-ia); }
+
+        .btn-solid-blue {
+            padding: 0.8rem;
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        /* Botón ocupado (mientras la IA responde o se guarda) */
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-cargando::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 0.6rem;
+            vertical-align: -2px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #FFFFFF;
+            border-radius: 50%;
+            animation: giro 0.8s linear infinite;
+        }
+
+        .btn-outline-blue.btn-cargando::before {
+            border-color: rgba(21, 57, 122, 0.3);
+            border-top-color: var(--azul-principal);
+        }
+
+        @keyframes giro { to { transform: rotate(360deg); } }
+
+        /* ---------------- FUNCIONES DE SPRINTS POSTERIORES ---------------- */
+        .proximamente {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .proximamente:hover { font-weight: inherit; }
+
+        .chip-proximamente {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: var(--azul-caja-ia);
+            color: var(--azul-principal);
+            border-radius: 999px;
+            padding: 0.1rem 0.6rem;
+            margin-left: 0.5rem;
+        }
+
+        /* ---------------- CONTENEDOR PRINCIPAL ---------------- */
+        main.container {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem 4rem;
+        }
+
+        h1.titulo-seccion,
+        h2.titulo-seccion {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--texto-oscuro);
+        }
+
+        /* ---------------- 01 INICIO: BUSCADOR ---------------- */
+        .caja-buscador {
+            border: 1px solid var(--gris-borde);
+            border-radius: 20px;
+            padding: 1.75rem 2rem 2rem;
+            margin-bottom: 3rem;
+            background: #FFFFFF;
+        }
+
+        .tabs-tipo-viaje {
+            display: flex;
+            gap: 0.25rem;
+            background: #EEEEEE;
+            padding: 0.3rem;
+            border-radius: 999px;
+            width: fit-content;
+            margin-bottom: 1.75rem;
+        }
+
+        .tab-btn {
+            border: none;
+            background: transparent;
+            padding: 0.45rem 1.5rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--texto-oscuro);
+            cursor: pointer;
+        }
+
+        .tab-btn.activo {
+            background: #FFFFFF;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Origen|Destino y Salida|Regreso van pegados de a dos; Buscar en la misma fila */
+        .fila-busqueda {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .par-inputs {
+            display: flex;
+            flex: 1;
+            border: 1px solid var(--gris-borde);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .par-inputs .input-pill {
+            border: none;
+            border-radius: 0;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .par-inputs .input-pill + .input-pill { border-left: 1px solid var(--gris-borde); }
+
+        .input-pill {
+            border: 1px solid var(--gris-borde);
+            border-radius: 16px;
+            padding: 0.85rem 1.1rem;
+            font-size: 0.95rem;
+            width: 100%;
+            outline: none;
+            color: var(--texto-oscuro);
+            background: #FFFFFF;
+        }
+
+        .fila-busqueda > .input-pill { flex: 0.7; min-width: 0; }
+
+        .input-pill::placeholder { color: var(--texto-gris); }
+
+        .btn-buscar {
+            padding: 0.85rem 3rem;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        /* ---------------- 01 INICIO: CONTINENTES ---------------- */
+        .grid-continentes {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.25rem;
+            align-items: stretch;
+        }
+
+        .card-continente {
+            border: 1px solid var(--gris-borde);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-align: center;
+            background: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            height: 360px;
+        }
+
+        .card-continente:hover { transform: translateY(-4px); }
+
+        .card-continente img {
+            width: 100%;
+            height: 290px;
+            object-fit: cover;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        .card-continente h3 {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            font-weight: 500;
+            border-top: 1px solid var(--gris-borde);
+        }
+
+        /* Si una foto no carga, se ve este fondo en lugar de una imagen rota */
+        .img-fallback {
+            background: var(--azul-caja-ia);
+            color: var(--azul-principal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        /* ---------------- 03 PLANES ---------------- */
+        .grid-planes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .card-plan {
+            border: 1px solid var(--gris-borde);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #FFFFFF;
+            transition: transform 0.2s;
+        }
+
+        .card-plan:hover { transform: translateY(-3px); }
+
+        .card-plan img,
+        .card-plan .img-fallback {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: flex;
+        }
+
+        .card-plan-info { padding: 1rem; text-align: center; }
+
+        .card-plan-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .card-plan-info p { color: var(--texto-oscuro); font-size: 0.9rem; }
+
+        /* ---------------- 04 DETALLE DEL PLAN ---------------- */
+        .grid-detalle-plan {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .detalle-left h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .precio-tag { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem; }
+
+        .sub-tag { color: var(--texto-oscuro); margin-bottom: 2rem; font-size: 1rem; }
+
+        .bloque-incluye h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.75rem; }
+
+        .bloque-incluye ul {
+            list-style: disc;
+            padding-left: 1.25rem;
+            margin-bottom: 2rem;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        .detalle-right img,
+        .detalle-right .img-fallback {
+            width: 100%;
+            border-radius: 16px;
+            height: 260px;
+            object-fit: cover;
+            margin-bottom: 1.5rem;
+            display: flex;
+        }
+
+        .desc-text { line-height: 1.6; margin-bottom: 2rem; font-size: 1rem; }
+
+        .btn-reservar {
+            display: block;
+            width: min(100%, 380px);
+            margin: 0 auto;
+            padding: 0.9rem;
+            font-size: 1.1rem;
+        }
+
+        /* ---------------- 05 PLANES CREADOS / 08 PANEL ---------------- */
+        .header-mis-planes {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.75rem;
+        }
+
+        .btn-crear-nuevo { padding: 0.65rem 1.6rem; font-size: 0.95rem; }
+
+        .item-plan-filas {
+            border: 1px solid var(--gris-borde);
+            border-radius: 16px;
+            padding: 1.25rem 1.75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+        }
+
+        .item-plan-filas.clicable { cursor: pointer; }
+        .item-plan-filas.clicable:hover { background: var(--azul-caja-ia); }
+
+        .item-plan-filas h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem; }
+
+        .item-plan-filas p { color: var(--texto-gris); font-size: 0.85rem; }
+
+        .badge-estado {
+            padding: 0.4rem 1.4rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-estado.publicado { background-color: var(--badge-verde-bg); color: var(--badge-verde-txt); }
+        .badge-estado.pendiente { background-color: var(--badge-naranja-bg); color: var(--badge-naranja-txt); }
+        .badge-estado.borrador  { background-color: var(--badge-gris-bg); color: var(--texto-gris); }
+
+        .grid-stats-admin {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card-stat { border: 1px solid var(--gris-borde); border-radius: 16px; padding: 1.5rem; }
+        .card-stat p { color: var(--texto-gris); font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; }
+        .card-stat .numero { font-size: 2.2rem; font-weight: 700; color: var(--azul-principal); }
+
+        /* ---------------- 02 LOGIN / 06 CREAR PLAN: FORMULARIOS ---------------- */
+        .caja-login-centrada {
+            max-width: 420px;
+            margin: 3rem auto;
+            border: 2px solid var(--azul-principal);
+            border-radius: 20px;
+            padding: 2.25rem 2rem;
+            background: #FFFFFF;
+        }
+
+        .caja-login-centrada h1 { font-size: 1.75rem; font-weight: 600; text-align: center; margin-bottom: 1.5rem; }
+        .caja-login-centrada h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 1.25rem; }
+        .caja-login-centrada .btn-solid-blue { margin-top: 0.75rem; }
+
+        .form-crear-container { max-width: 760px; }
+
+        .form-row { margin-bottom: 1.25rem; }
+
+        .form-row label {
+            display: block;
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .input-box {
+            width: 100%;
+            border: 1px solid var(--azul-principal);
+            border-radius: 14px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            color: var(--texto-oscuro);
+            background: #FFFFFF;
+        }
+
+        .input-box::placeholder { color: var(--texto-gris); opacity: 0.75; }
+
+        .input-box[readonly] { color: var(--texto-gris); background: #FAFAFA; }
+
+        .input-box.invalido { border-color: var(--error); }
+
+        /* Mensaje de error debajo de cada campo (HU-03) */
+        .error-campo {
+            color: var(--error);
+            font-size: 0.85rem;
+            margin-top: 0.35rem;
+        }
+
+        .form-row-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .btn-centrado-ia {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 0.85rem 2.5rem;
+            font-size: 1rem;
+            min-width: 320px;
+        }
+
+        /* ---------------- 07 ITINERARIO GENERADO POR LA IA ---------------- */
+        .caja-sugerido-ia {
+            background-color: var(--azul-caja-ia);
+            border: 1px solid var(--azul-borde-ia);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .caja-sugerido-ia .header-ia {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--texto-oscuro);
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-dias-ia {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem 2.5rem;
+        }
+
+        .dia-item h4 { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+
+        .dia-item p { font-size: 0.95rem; line-height: 1.45; }
+
+        /* Cuadro de texto para editar cada día (HU-05) */
+        .dia-item textarea {
+            width: 100%;
+            min-height: 4.5rem;
+            resize: vertical;
+            border: 1px solid var(--azul-borde-ia);
+            border-radius: 10px;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            background: #FFFFFF;
+            color: var(--texto-oscuro);
+        }
+
+        .grid-acciones-ia {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Motivo de rechazo del administrador */
+        .caja-rechazo { margin-top: 1.5rem; }
+        .caja-rechazo textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
+
+        /* ---------------- AVISOS EMERGENTES ---------------- */
+        .mensaje-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--azul-principal);
+            color: #FFFFFF;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+            display: none;
+            z-index: 999;
+            max-width: 360px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .mensaje-toast.error { background: var(--error); }
+
+        /* ---------------- PANTALLAS PEQUEÑAS ---------------- */
+        @media (max-width: 900px) {
+            header { padding: 1rem 1.25rem; flex-wrap: wrap; gap: 1rem; }
+            nav.menu-nav { gap: 1.25rem; flex-wrap: wrap; }
+            .fila-busqueda { flex-direction: column; align-items: stretch; }
+            .grid-continentes { grid-template-columns: repeat(2, 1fr); }
+            .grid-planes { grid-template-columns: repeat(2, 1fr); }
+            .grid-detalle-plan,
+            .grid-dias-ia,
+            .form-row-2col,
+            .grid-acciones-ia,
+            .grid-stats-admin { grid-template-columns: 1fr; gap: 1.5rem; }
+            .btn-centrado-ia { min-width: 0; width: 100%; }
+        }
+
+        @media (max-width: 560px) {
+            .grid-planes { grid-template-columns: 1fr; }
+            .item-plan-filas { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+        }
+
+        
+        /* DETALLE DE REVISIÓN DEL ADMINISTRADOR */
+
+        .revision-detalle {
+            background: white;
+            border-radius: 14px;
+            padding: 28px;
+            margin-top: 24px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+        }
+
+        .revision-seccion {
+            margin-bottom: 30px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .revision-seccion:last-child {
+            border-bottom: none;
+        }
+
+        .revision-seccion h2 {
+            color: #15397A;
+            font-size: 1.2rem;
+            margin-bottom: 18px;
+        }
+
+        .revision-dato {
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        .revision-dato strong {
+            display: block;
+            color: #15397A;
+            margin-bottom: 5px;
+        }
+
+        .revision-dato p {
+            color: #555;
+            white-space: pre-line;
+            line-height: 1.8;
+            margin: 0;
+        }
+
+        .revision-dia {
+            background: #F5F7FB;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 14px;
+            line-height: 1.8;
+        }
+
+        .revision-dia h3 {
+            color: #15397A;
+            margin-bottom: 10px;
+        }
+
+        .revision-acciones {
+            display: flex;
+            gap: 14px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .revision-observaciones {
+            margin-top: 20px;
+        }
+
+        .revision-observaciones textarea {
+            min-height: 110px;
+            line-height: 1.7;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="mensaje-toast"></div>
+
+    <!-- HEADER NAVEGACIÓN -->
+    <header>
+        <a class="brand" onclick="mostrarVista('home')">Empresa de viajes</a>
+        <nav class="menu-nav" id="menu-navegacion">
+            <a onclick="mostrarVista('home')" class="activo">Reservar</a>
+            <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Experiencias</a>
+            <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Ofertas</a>
+            <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Nosotros</a>
+            <button class="btn-nav-login" onclick="mostrarVista('login')">Iniciar sesión</button>
+        </nav>
+    </header>
+
+    <main class="container">
+
+        <!-- PANTALLA 01: HOME BUSCADOR & CONTINENTES -->
+        <section id="vista-home">
+            <div class="caja-buscador proximamente" title="Disponible en el Sprint 2">
+                <div class="tabs-tipo-viaje">
+                    <button class="tab-btn activo">Ida y vuelta</button>
+                    <button class="tab-btn">Solo ida</button>
+                </div>
+                
+                <div class="fila-busqueda">
+                    <div class="par-inputs">
+                        <input type="text" class="input-pill" placeholder="Origen" disabled>
+                        <input type="text" class="input-pill" placeholder="Destino" disabled>
+                    </div>
+                    <div class="par-inputs">
+                        <input type="text" class="input-pill" placeholder="Salida" disabled>
+                        <input type="text" class="input-pill" placeholder="Regreso" disabled>
+                    </div>
+                    <input type="text" class="input-pill" placeholder="Pasajeros" disabled>
+                    <button class="btn-buscar" disabled>Buscar</button>
+                </div>
+            </div>
+
+            <h1 class="titulo-seccion">Descubre nuestros planes</h1>
+
+            <div class="grid-continentes">
+                <div class="card-continente" onclick="cargarPlanesContinente('África')">
+                    <img src="https://images.unsplash.com/photo-1516426122078-c23e76319801" alt="África" onerror="usarFallbackImg(this, 'África')">
+                    <h3>África</h3>
+                </div>
+                <div class="card-continente" onclick="cargarPlanesContinente('América')">
+                    <img src="https://images.unsplash.com/photo-1526392060635-9d6019884377" alt="América" onerror="usarFallbackImg(this, 'América')">
+                    <h3>América</h3>
+                </div>
+                <div class="card-continente" onclick="cargarPlanesContinente('Asia')">
+                    <img src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26" alt="Asia" onerror="usarFallbackImg(this, 'Asia')">
+                    <h3>Asia</h3>
+                </div>
+                <div class="card-continente" onclick="cargarPlanesContinente('Europa')">
+                    <img src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34" alt="Europa" onerror="usarFallbackImg(this, 'Europa')">
+                    <h3>Europa</h3>
+                </div>
+                <div class="card-continente" onclick="cargarPlanesContinente('Oceanía')">
+                    <img src="https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9" alt="Oceanía" onerror="usarFallbackImg(this, 'Oceanía')">
+                    <h3>Oceanía</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 03: LISTADO POR CONTINENTE -->
+        <section id="vista-listado-planes" class="oculto">
+            <h1 class="titulo-seccion" id="titulo-continente-planes">Planes en América</h1>
+            <div class="grid-planes" id="contenedor-grid-planes"></div>
+        </section>
+
+        <!-- PANTALLA 04: DETALLE DE PLAN -->
+        <section id="vista-detalle-plan" class="oculto">
+            <div class="grid-detalle-plan">
+                <div class="detalle-left">
+                    <h1 id="det-titulo">Cargando...</h1>
+                    <div class="precio-tag" id="det-precio">Precio: --</div>
+                    <div class="sub-tag" id="det-sub">--</div>
+
+                    <div class="bloque-incluye">
+                        <h3>Itinerario</h3>
+                        <div id="det-itinerario"></div>
+                        <h3>Incluye</h3>
+                        <ul id="det-incluye">
+                            <li>Vuelos de ida y vuelta</li>
+                            <li>Hospedaje en hotel seleccionado</li>
+                            <li>Asistencia médica y seguro de viaje</li>
+                            <li>Tours y experiencias guiadas</li>
+                        </ul>
+
+                        <h3>No incluye</h3>
+                        <ul id="det-no-incluye">
+                            <li>Gastos personales e itinerarios opcionales</li>
+                            <li>Impuestos y tasas locales adicionales</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="detalle-right">
+                    <img id="det-img" src="" alt="Imagen del destino" onerror="usarFallbackImg(this, 'Plan Turístico')">
+                    <p class="desc-text" id="det-descripcion">
+                        Disfruta de una experiencia inolvidable diseñada a tu medida con la mejor asistencia comercial y personalizada.
+                    </p>
+                    <button class="btn-reservar proximamente" title="Disponible en el Sprint 2">Reservar este plan</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 02: LOGIN -->
+        <section id="vista-login" class="oculto">
+            <div class="caja-login-centrada">
+                <h1>Empresa de viajes</h1>
+                <h2>Iniciar sesión</h2>
+                
+                <div class="form-row">
+                    <label>Correo electrónico</label>
+                    <input type="email" id="login-email" class="input-box" placeholder="ejemplo@correo.com">
+                    <div class="error-campo" id="error-login-email"></div>
+                </div>
+                
+                <div class="form-row">
+                    <label>Contraseña</label>
+                    <input type="password" id="login-pass" class="input-box" placeholder="••••••••">
+                    <div class="error-campo" id="error-login-pass"></div>
+                </div>
+
+                <button class="btn-solid-blue" id="btn-login-submit" onclick="ejecutarLogin()">Ingresar</button>
+                
+                <button class="btn-outline-blue proximamente" style="margin-top:0.75rem;" title="Disponible en el Sprint 2">Registrarse</button>
+            </div>
+        </section>
+
+        <!-- PANTALLA 05: MIS PLANES ASESOR -->
+        <section id="vista-asesor-mis-planes" class="oculto">
+            <div class="header-mis-planes">
+                <h1 class="titulo-seccion" style="margin:0;">Planes turísticos creados</h1>
+                <a class="btn-crear-nuevo" onclick="mostrarVista('asesor-crear')">+ Crear nuevo plan</a>
+            </div>
+            <div id="contenedor-mis-planes"></div>
+        </section>
+
+        <!-- PANTALLA 06: FORMULARIO CREAR PLAN -->
+        <section id="vista-asesor-crear" class="oculto">
+            <h1 class="titulo-seccion">Crear nuevo plan</h1>
+            <div class="form-crear-container">
+                <div class="form-row">
+                    <label>Ciudad o destino</label>
+                    <input
+                        type="text"
+                        id="crear-destino"
+                        class="input-box"
+                        placeholder="Ej: Madrid"
+                    >
+                    <div class="error-campo" id="error-crear-destino"></div>
+                </div>
+
+                <div class="form-row">
+                    <label>País</label>
+                    <input
+                        type="text"
+                        id="crear-pais"
+                        class="input-box"
+                        placeholder="Ej: España"
+                    >
+                    <div class="error-campo" id="error-crear-pais"></div>
+                </div>
+
+                <div class="form-row">
+                    <label>Continente</label>
+
+                    <select id="crear-continente" class="input-box">
+                        <option value="">Selecciona un continente</option>
+                        <option value="América">América</option>
+                        <option value="Europa">Europa</option>
+                        <option value="Asia">Asia</option>
+                        <option value="África">África</option>
+                        <option value="Oceanía">Oceanía</option>
+                    </select>
+
+                    <div class="error-campo" id="error-crear-continente"></div>
+                </div>
+
+                <div class="form-row">
+                    <label>Fotografía del destino</label>
+
+                    <input
+                        type="file"
+                        id="crear-imagen"
+                        class="input-box"
+                        accept=".jpg,.jpeg,.png,.webp"
+                    >
+
+                    <small>
+                        Formatos permitidos: JPG, PNG y WEBP.
+                        Máximo 5 MB.
+                        Si el destino ya existe, puedes conservar su fotografía.
+                    </small>
+
+                    <div id="vista-previa-destino" style="margin-top: 10px;"></div>
+
+                    <div class="error-campo" id="error-crear-imagen"></div>
+                </div>
+                <div class="form-row-2col">
+                    <div class="form-row">
+                        <label>Duración (días)</label>
+                        <input type="number" id="crear-duracion" class="input-box" placeholder="Ej: 5" min="1">
+                        <div class="error-campo" id="error-crear-duracion"></div>
+                    </div>
+                    <div class="form-row">
+                        <label>Presupuesto (COP)</label>
+                        <input type="number" id="crear-presupuesto" class="input-box" placeholder="Ej: 2500000" min="1">
+                        <div class="error-campo" id="error-crear-presupuesto"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label>Tipo de viajero</label>
+                    <input type="text" id="crear-tipo" class="input-box" placeholder="Ej: Familia, Pareja, Amigos">
+                    <div class="error-campo" id="error-crear-tipo"></div>
+                </div>
+
+                <div class="form-row">
+                    <label>Intereses del viajero</label>
+                    <input type="text" id="crear-intereses" class="input-box" placeholder="Ej: Playa, gastronomía, deportes">
+                    <div class="error-campo" id="error-crear-intereses"></div>
+                </div>
+
+                <button class="btn-centrado-ia" id="btn-generar-ia" onclick="generarPlanIA()">Generar itinerario con IA</button>
+            </div>
+        </section>
+
+        <!-- PANTALLA 07: REVISIÓN DE PROPUESTA IA -->
+        <section id="vista-asesor-resultado-ia" class="oculto">
+            <h1 class="titulo-seccion" id="titulo-ia-resultado">San Andrés · 5 días</h1>
+            
+            <div class="caja-sugerido-ia">
+                <div class="header-ia">SUGERIDO POR IA · según destino, presupuesto e intereses</div>
+                <div class="grid-dias-ia" id="contenedor-dias-ia"></div>
+            </div>
+
+            
+            <div class="form-crear-container" style="margin-top: 2rem;">
+
+                <h2 class="titulo-seccion" style="font-size: 1.3rem;">
+                    Información del plan turístico
+                </h2>
+
+                <p style="color: var(--texto-gris); margin-bottom: 1.5rem;">
+                    Completa los servicios y elementos que se ofrecen al viajero.
+                </p>
+
+                <div class="form-row">
+                    <label>¿Qué incluye el plan?</label>
+
+                    <textarea
+                        id="crear-incluye"
+                        class="input-box"
+                        rows="5"
+                        placeholder="Ej: Hospedaje, desayuno, transporte al aeropuerto, entradas a los sitios turísticos..."
+                    ></textarea>
+
+                    <div class="error-campo" id="error-crear-incluye"></div>
+                </div>
+
+                <div class="form-row">
+                    <label>¿Qué no incluye el plan?</label>
+
+                    <textarea
+                        id="crear-no-incluye"
+                        class="input-box"
+                        rows="5"
+                        placeholder="Ej: Tiquetes aéreos, gastos personales, alimentación adicional..."
+                    ></textarea>
+
+                    <div class="error-campo" id="error-crear-no-incluye"></div>
+                </div>
+
+            </div>
+
+
+            <div class="form-row-2col" style="margin-bottom: 2rem;">
+                <div class="form-row">
+                    <label>Costo estimado</label>
+                    <input type="text" id="ia-costo-input" class="input-box" value="$ 0 COP">
+                </div>
+                <div class="form-row">
+                    <label>Estado</label>
+                    <input type="text" class="input-box" value="Borrador" readonly>
+                </div>
+            </div>
+
+            <div class="grid-acciones-ia">
+                <button class="btn-outline-blue" id="btn-guardar-borrador" onclick="guardarBorradorEditado()">Guardar cambios</button>
+                <button class="btn-solid-blue" id="btn-enviar-revision" onclick="enviarPlanRevision()">Enviar a revisión</button>
+            </div>
+        </section>
+
+        <!-- PANTALLA 08: PANEL ADMINISTRADOR -->
+        <section id="vista-admin-panel" class="oculto">
+            <h1 class="titulo-seccion">Panel general</h1>
+
+            <div class="grid-stats-admin">
+                <div class="card-stat">
+                    <p>Planes publicados</p>
+                    <div class="numero" id="stat-pub-num">0</div>
+                </div>
+                <div class="card-stat">
+                    <p>Asesores activos</p>
+                    <div class="numero">4</div>
+                </div>
+            </div>
+
+            <h2 class="titulo-seccion" style="font-size:1.3rem;">Planes pendientes de aprobacion</h2>
+            <div id="contenedor-pendientes-admin"></div>
+        </section>
+
+        <section id="vista-admin-revision" class="oculto">
+            <button class="btn-solid-blue" onclick="mostrarVista('admin-panel')">← Volver al panel</button>
+            <h1 class="titulo-seccion" id="admin-revision-titulo">Revisión del plan</h1>
+            <div class="grid-detalle-plan">
+                <div class="detalle-left">
+                    <div class="precio-tag" id="admin-revision-precio"></div>
+                    <p id="admin-revision-datos"></p>
+                    <h3>Itinerario propuesto</h3><div id="admin-revision-itinerario"></div>
+                    <h3>Incluye</h3><p id="admin-revision-incluye"></p>
+                    <h3>No incluye</h3><p id="admin-revision-no-incluye"></p>
+                </div>
+                <div class="detalle-right">
+                    <img id="admin-revision-img" src="" alt="Imagen del destino" onerror="usarFallbackImg(this, 'Destino turístico')">
+                    <p id="admin-revision-asesor" class="desc-text"></p>
+                    <div class="caja-rechazo">
+                        <label for="admin-motivo-rechazo"><strong>Observación</strong> (opcional al rechazar)</label>
+                        <textarea id="admin-motivo-rechazo" class="input-box" placeholder="Si lo deseas, explica qué debe corregirse (opcional)..."></textarea>
+                    </div>
+                    <div class="grid-acciones-ia">
+                        <button class="btn-solid-blue" onclick="decidirRevisionAdmin('Aprobado')">Aprobar plan</button>
+                        <button class="btn-solid-blue" onclick="decidirRevisionAdmin('Rechazado')">Rechazar plan</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="vista-admin-revision" class="oculto">
+            <h1 class="titulo-seccion">Revisión del plan turístico</h1>
+
+            <div id="contenido-revision-admin"></div>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = "/api";
+        let estadoSesion = null;
+        let idPlanActual = null;
+        let planActualObjeto = null;
+        let planRevisionActual = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await cargarSesion();
+
+            // Cerrar menú usuario al hacer clic fuera
+            document.addEventListener("click", (e) => {
+                const wrap = document.querySelector(".avatar-wrap");
+                if (wrap && !wrap.contains(e.target)) {
+                    const menu = document.getElementById("dropdown-usuario");
+                    if (menu) menu.classList.add("oculto");
+                }
+            });
+        });
+
+        // IMAGEN FALLBACK SI NO CARGA DE INTERNET
+        function usarFallbackImg(el, texto) {
+            if (!el || !el.parentElement) return;
+
+            el.style.display = "none";
+            el.onerror = null;
+
+            let fallback = el.nextElementSibling;
+
+            if (!fallback || !fallback.classList.contains("img-fallback")) {
+                fallback = document.createElement("div");
+                fallback.className = "img-fallback";
+                el.insertAdjacentElement("afterend", fallback);
+            }
+
+            fallback.style.height = el.style.height || getComputedStyle(el).height;
+            fallback.textContent = texto || "Imagen no disponible";
+        }
+
+        async function cargarSesion() {
+            try {
+                const res = await fetch(`${API_URL}/sesion-actual`);
+                estadoSesion = await res.json();
+            } catch (e) {
+                estadoSesion = null;
+            }
+            renderHeaderNav();
+        }
+
+        function toggleMenuUsuario(e) {
+            e.stopPropagation();
+            const menu = document.getElementById("dropdown-usuario");
+            if (menu) menu.classList.toggle("oculto");
+        }
+
+        function renderHeaderNav() {
+            const nav = document.getElementById("menu-navegacion");
+            if (!estadoSesion) {
+                nav.innerHTML = `
+                    <a onclick="mostrarVista('home')" class="activo">Reservar</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Experiencias</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Ofertas</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Nosotros</a>
+                    <button class="btn-nav-login" onclick="mostrarVista('login')">Iniciar sesión</button>
+                `;
+            } else if (estadoSesion.rol === 'asesor') {
+                nav.innerHTML = `
+                    <a onclick="mostrarVista('asesor-mis-planes')" class="activo">Mis planes</a>
+                    <a onclick="mostrarVista('asesor-crear')">Crear plan</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Reportes</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Nosotros</a>
+                    <div class="avatar-wrap">
+                        <div class="user-avatar" title="${estadoSesion.nombre}" onclick="toggleMenuUsuario(event)">👤</div>
+                        <div class="menu-usuario oculto" id="dropdown-usuario">
+                            <div class="nombre-usuario"><strong>${estadoSesion.nombre}</strong><br><small>Asesor</small></div>
+                            <hr style="border:none; border-top:1px solid #EEE; margin:0.2rem 0;">
+                            <button onclick="logout()">Cerrar sesión</button>
+                        </div>
+                    </div>
+                `;
+            } else if (estadoSesion.rol === 'administrador') {
+                nav.innerHTML = `
+                    <a onclick="mostrarVista('admin-panel')" class="activo">Panel</a>
+                    <a onclick="mostrarVista('home')">Catálogo</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Reportes</a>
+                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Usuarios</a>
+                    <div class="avatar-wrap">
+                        <div class="user-avatar" title="${estadoSesion.nombre}" onclick="toggleMenuUsuario(event)">👤</div>
+                        <div class="menu-usuario oculto" id="dropdown-usuario">
+                            <div class="nombre-usuario"><strong>${estadoSesion.nombre}</strong><br><small>Administrador</small></div>
+                            <hr style="border:none; border-top:1px solid #EEE; margin:0.2rem 0;">
+                            <button onclick="logout()">Cerrar sesión</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function mostrarVista(idVista) {
+            limpiarErroresFormulario();
+            const secciones = [
+                'vista-home', 'vista-listado-planes', 'vista-detalle-plan', 
+                'vista-login', 'vista-asesor-mis-planes', 'vista-asesor-crear', 
+                'vista-asesor-resultado-ia', 'vista-admin-panel', 'vista-admin-revision'
+            ];
+            secciones.forEach(s => document.getElementById(s).classList.add('oculto'));
+            
+            document.getElementById(`vista-${idVista}`).classList.remove('oculto');
+
+            if (idVista === 'asesor-mis-planes') cargarPlanesAsesor();
+            if (idVista === 'admin-panel') cargarPlanesAdmin();
+        }
+
+        function mostrarToast(msg, esError = false) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            if (esError) t.classList.add("error");
+            else t.classList.remove("error");
+            t.style.display = "block";
+            setTimeout(() => { t.style.display = "none"; }, 3500);
+        }
+
+        function limpiarErroresFormulario() {
+            document.querySelectorAll(".error-campo").forEach(el => el.innerText = "");
+            document.querySelectorAll(".input-box").forEach(el => el.classList.remove("invalido"));
+        }
+
+        // LOGIN / LOGOUT
+        async function ejecutarLogin() {
+            limpiarErroresFormulario();
+            const correo = document.getElementById("login-email").value.trim();
+            const contrasena = document.getElementById("login-pass").value.trim();
+            let valido = true;
+
+            if (!correo) {
+                document.getElementById("error-login-email").innerText = "Ingrese su correo electrónico.";
+                document.getElementById("login-email").classList.add("invalido");
+                valido = false;
+            }
+            if (!contrasena) {
+                document.getElementById("error-login-pass").innerText = "Ingrese su contraseña.";
+                document.getElementById("login-pass").classList.add("invalido");
+                valido = false;
+            }
+
+            if (!valido) return;
+
+            const btn = document.getElementById("btn-login-submit");
+            btn.disabled = true;
+            btn.classList.add("btn-cargando");
+
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ correo, contrasena })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    estadoSesion = data.usuario;
+                    renderHeaderNav();
+                    mostrarToast("Sesión iniciada correctamente");
+                    if (estadoSesion.rol === 'asesor') mostrarVista('asesor-mis-planes');
+                    else if (estadoSesion.rol === 'administrador') mostrarVista('admin-panel');
+                    else mostrarVista('home');
+                } else {
+                    document.getElementById("error-login-pass").innerText = data.error || "Credenciales inválidas.";
+                }
+            } catch (e) {
+                mostrarToast("Error de conexión al servidor", true);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove("btn-cargando");
+            }
+        }
+
+        async function logout() {
+            await fetch(`${API_URL}/logout`, { method: "POST" });
+            estadoSesion = null;
+            renderHeaderNav();
+            mostrarToast("Sesión cerrada");
+            mostrarVista('home');
+        }
+
+        // CLIENTE: LISTADO POR CONTINENTE
+        async function cargarPlanesContinente(continente) {
+            document.getElementById("titulo-continente-planes").innerText = `Planes en ${continente}`;
+            const res = await fetch(`${API_URL}/planes?continente=${continente}`);
+            const planes = await res.json();
+            
+            const cont = document.getElementById("contenedor-grid-planes");
+            cont.innerHTML = "";
+
+            if (planes.length === 0) {
+                cont.innerHTML = `<p style="grid-column: 1/-1; color:var(--texto-gris);">No hay planes disponibles en este continente.</p>`;
+            } else {
+                planes.forEach(p => {
+                    cont.innerHTML += `
+                        <div class="card-plan" onclick="verDetallePlan(${p.id_plan})">
+                            <img src="${p.imagen_url || ''}" alt="${p.nombre}" onerror="usarFallbackImg(this, '${p.nombre}')">
+                            <div class="card-plan-info">
+                                <h3>${p.nombre}</h3>
+                                <p>Desde ${Number(p.costo_estimado).toLocaleString("es-CO")} COP</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            mostrarVista('listado-planes');
+        }
+
+        // DETALLE DE PLAN
+        async function verDetallePlan(idPlan) {
+            try {
+                const res = await fetch(`${API_URL}/planes/${idPlan}`);
+                const p = await res.json();
+                console.log("DATOS DEL PLAN:", p);
+                console.log("ITINERARIO RECIBIDO:", p.itinerario);
+                if (!res.ok) throw new Error(p.error || "No se pudo cargar el plan.");
+                document.getElementById("det-titulo").innerText = p.nombre;
+                document.getElementById("det-precio").innerText = `Precio: desde $${Number(p.costo_estimado).toLocaleString("es-CO")} COP`;
+                document.getElementById("det-sub").innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días`;
+                document.getElementById("det-descripcion").innerText = `Experiencia en ${p.destino}, diseñada para un viajero tipo ${p.datos_viajero.tipo_viajero}. Intereses: ${p.datos_viajero.intereses}.`;
+                const img = document.getElementById("det-img");
+                if (img) {
+                    const fallback = img.nextElementSibling;
+
+                    if (fallback && fallback.classList.contains("img-fallback")) {
+                        fallback.remove();
+                    }
+
+                    img.style.display = "";
+                    img.onerror = () => usarFallbackImg(img, p.destino);
+
+                    if (p.imagen_url) {
+                        img.src = p.imagen_url;
+                    } else {
+                        img.removeAttribute("src");
+                        usarFallbackImg(img, p.destino);
+                    }
+                }
+                document.getElementById("det-incluye").innerHTML = `<li>${escapeHTML(p.incluye || 'Información no especificada')}</li>`;
+                document.getElementById("det-no-incluye").innerHTML = `<li>${escapeHTML(p.no_incluye || 'Información no especificada')}</li>`;
+                document.getElementById("det-itinerario").innerHTML = (p.itinerario?.dias || []).map(d => `<div class="dia-item"><h4>Día ${d.numero_dia}</h4><p>${escapeHTML(d.descripcion_resumen)}</p></div>`).join('') || '<p>Itinerario no disponible.</p>';
+                mostrarVista('detalle-plan');
+            } catch (error) { mostrarToast(error.message, true); }
+        }
+
+        function escapeHTML(texto) {
+            return String(texto ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        // ASESOR: MIS PLANES
+        async function cargarPlanesAsesor() {
+            const idAsesor = estadoSesion ? estadoSesion.id_usuario : 1;
+            const res = await fetch(`${API_URL}/asesor/mis-planes/${idAsesor}`);
+            const planes = await res.json();
+
+            const cont = document.getElementById("contenedor-mis-planes");
+            cont.innerHTML = "";
+
+            if (planes.length === 0) {
+                cont.innerHTML = `<p style="color:var(--texto-gris);">Aún no has creado planes turísticos.</p>`;
+                return;
+            }
+
+            planes.forEach(p => {
+                const est = p.estado.toLowerCase();
+                cont.innerHTML += `
+                    <div class="item-plan-filas">
+                        <div>
+                            <h3>${p.nombre}</h3>
+                            <p>Desde ${Number(p.costo_estimado).toLocaleString("es-CO")} COP</p>
+                        </div>
+                        <span class="badge-estado ${est}">${p.estado}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // ASESOR: GENERAR IA
+        
+        async function generarPlanIA() {
+
+            limpiarErroresFormulario();
+
+            const destino = document.getElementById("crear-destino").value.trim();
+            const pais = document.getElementById("crear-pais").value.trim();
+            const continente = document.getElementById("crear-continente").value;
+
+            const imagen = document.getElementById("crear-imagen").files[0];
+
+            const duracion = document.getElementById("crear-duracion").value;
+            const presupuesto = document.getElementById("crear-presupuesto").value;
+
+            const tipo_viajero = document.getElementById("crear-tipo").value.trim();
+            const intereses = document.getElementById("crear-intereses").value.trim();
+
+            let valido = true;
+
+            function mostrarError(id, mensaje) {
+
+                document.getElementById(id).innerText = mensaje;
+
+                valido = false;
+            }
+
+            // Validar destino
+
+            if (!destino) {
+                mostrarError(
+                    "error-crear-destino",
+                    "El destino es obligatorio."
+                );
+            }
+
+            // Validar país
+
+            if (!pais) {
+                mostrarError(
+                    "error-crear-pais",
+                    "El país es obligatorio."
+                );
+            }
+
+            // Validar continente
+
+            if (!continente) {
+                mostrarError(
+                    "error-crear-continente",
+                    "Selecciona un continente."
+                );
+            }
+
+            // Validar duración
+
+            if (!duracion || Number(duracion) <= 0) {
+                mostrarError(
+                    "error-crear-duracion",
+                    "La duración debe ser mayor a 0 días."
+                );
+            }
+
+            // Validar presupuesto
+
+            if (!presupuesto || Number(presupuesto) <= 0) {
+                mostrarError(
+                    "error-crear-presupuesto",
+                    "El presupuesto debe ser mayor a $0 COP."
+                );
+            }
+
+            // Validar tipo de viajero
+
+            if (!tipo_viajero) {
+                mostrarError(
+                    "error-crear-tipo",
+                    "El tipo de viajero es obligatorio."
+                );
+            }
+
+            // Validar intereses
+
+            if (!intereses) {
+                mostrarError(
+                    "error-crear-intereses",
+                    "Los intereses son obligatorios."
+                );
+            }
+
+            // Validar imagen si se seleccionó
+
+            if (imagen) {
+
+                const formatos = [
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp"
+                ];
+
+                if (!formatos.includes(imagen.type)) {
+                    mostrarError(
+                        "error-crear-imagen",
+                        "El formato de imagen no es válido."
+                    );
+                }
+
+                if (imagen.size > 5 * 1024 * 1024) {
+                    mostrarError(
+                        "error-crear-imagen",
+                        "La imagen supera los 5 MB."
+                    );
+                }
+            }
+
+            if (!valido) return;
+
+            const btn = document.getElementById("btn-generar-ia");
+
+            btn.disabled = true;
+            btn.classList.add("btn-cargando");
+
+            try {
+
+                // Crear formulario multipart
+
+                const formulario = new FormData();
+
+                formulario.append("destino", destino);
+                formulario.append("pais", pais);
+                formulario.append("continente", continente);
+
+                formulario.append("duracion", duracion);
+                formulario.append("presupuesto", presupuesto);
+
+                formulario.append("tipo_viajero", tipo_viajero);
+                formulario.append("intereses", intereses);
+
+                // La imagen es opcional
+
+                if (imagen) {
+                    formulario.append("imagen", imagen);
+                }
+
+                // Enviar información al servidor
+
+                const res = await fetch(
+                    `${API_URL}/planes/generar-ia`,
+                    {
+                        method: "POST",
+                        body: formulario
+                    }
+                );
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    mostrarToast(
+                        data.error || "No fue posible generar el plan.",
+                        true
+                    );
+
+                    return;
+                }
+
+                // Guardar plan generado
+
+                planActualObjeto = data.plan;
+
+                idPlanActual = planActualObjeto.id_plan;
+
+                document.getElementById(
+                    "titulo-ia-resultado"
+                ).innerText =
+                    `${planActualObjeto.destino} · ${planActualObjeto.datos_viajero.duracion_dias} días`;
+
+                document.getElementById(
+                    "ia-costo-input"
+                ).value =
+                    `$ ${Number(planActualObjeto.costo_estimado).toLocaleString("es-CO")} COP`;
+
+                // Mostrar itinerario
+
+                renderItinerarioEditables(
+                    planActualObjeto.itinerario.dias
+                );
+
+                mostrarToast("Plan generado correctamente.");
+
+                mostrarVista("asesor-resultado-ia");
+
+            } catch (error) {
+                console.error(
+                    "Error al generar el plan:",
+                    error
+                );
+
+                mostrarToast(
+                    "No se pudo conectar con el servidor. " +
+                    "Verifica tu conexión e inténtalo nuevamente.",
+                    true
+                );
+
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove("btn-cargando");
+            }
+        }
+
+
+        // RENDERIZAR EDICIÓN DE DÍAS (HU-05)
+        function renderItinerarioEditables(dias) {
+            const contDias = document.getElementById("contenedor-dias-ia");
+            contDias.innerHTML = "";
+            dias.forEach((d, idx) => {
+                contDias.innerHTML += `
+                    <div class="dia-item">
+                        <h4>Día ${d.numero_dia}</h4>
+                        <textarea id="edit-dia-${idx}" class="input-box">${d.descripcion_resumen}</textarea>
+                    </div>
+                `;
+            });
+        }
+
+        async function guardarBorradorEditado() {
+            if (!idPlanActual || !planActualObjeto) return;
+            const dias = planActualObjeto.itinerario.dias.map((d, i) => ({numero_dia:d.numero_dia, descripcion_resumen:document.getElementById(`edit-dia-${i}`).value.trim()}));
+            try {
+                const res = await fetch(`${API_URL}/planes/${idPlanActual}/itinerario`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dias})});
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'No se pudo guardar.');
+                planActualObjeto.itinerario.dias = dias; mostrarToast('Itinerario actualizado correctamente.'); mostrarVista('asesor-mis-planes');
+            } catch (e) { mostrarToast(e.message, true); }
+        }
+
+        
+        async function enviarPlanRevision() {
+
+            if (!idPlanActual) return;
+
+            const incluye = document.getElementById("crear-incluye").value.trim();
+            const noIncluye = document.getElementById("crear-no-incluye").value.trim();
+
+            const costo = Number(
+                document.getElementById("ia-costo-input").value.replace(/\D/g, "")
+            );
+
+            document.getElementById("error-crear-incluye").innerText = "";
+            document.getElementById("error-crear-no-incluye").innerText = "";
+
+            if (!incluye) {
+                document.getElementById("error-crear-incluye").innerText =
+                    "Debes indicar qué incluye el plan.";
+                return;
+            }
+
+            if (!noIncluye) {
+                document.getElementById("error-crear-no-incluye").innerText =
+                    "Debes indicar qué no incluye el plan.";
+                return;
+            }
+
+            const btn = document.getElementById("btn-enviar-revision");
+
+            btn.disabled = true;
+
+            try {
+
+                // Guardar información comercial
+
+                const respuesta = await fetch(
+                    `${API_URL}/planes/${idPlanActual}/informacion`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            incluye: incluye,
+                            no_incluye: noIncluye,
+                            costo_estimado: costo
+                        })
+                    }
+                );
+
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    mostrarToast(datos.error, true);
+                    return;
+                }
+
+                // Enviar a revisión
+
+                const res = await fetch(
+                    `${API_URL}/planes/${idPlanActual}/enviar-revision`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+                const resultado = await res.json();
+
+                if (res.ok) {
+                    mostrarToast("Plan enviado a revisión del administrador.");
+                    mostrarVista("asesor-mis-planes");
+                } else {
+                    mostrarToast(resultado.error, true);
+                }
+
+            } catch (error) {
+
+                console.error(error);
+                mostrarToast("Error de conexión al servidor.", true);
+
+            } finally {
+
+                btn.disabled = false;
+            }
+        }
+
+
+        // ADMIN: PANEL Y PANTALLA DE REVISIÓN
+        async function cargarPlanesAdmin() {
+            try {
+                const [rPlanes, rStats] = await Promise.all([fetch(`${API_URL}/admin/pendientes`), fetch(`${API_URL}/admin/estadisticas`)]);
+                const planes = await rPlanes.json(), stats = await rStats.json();
+                if (!rPlanes.ok) throw new Error(planes.error || 'No se pudieron cargar los pendientes.');
+                document.getElementById('stat-pub-num').innerText = stats.planes_publicados ?? 0;
+                const statsEls = document.querySelectorAll('.card-stat .numero'); if (statsEls[1]) statsEls[1].innerText = stats.asesores_activos ?? 0;
+                const cont = document.getElementById('contenedor-pendientes-admin'); cont.innerHTML = '';
+                if (!planes.length) { cont.innerHTML = '<p style="color:var(--texto-gris);">No hay planes pendientes por aprobar.</p>'; return; }
+                planes.forEach(p => {
+                    const card = document.createElement('div'); card.className = 'item-plan-filas clicable';
+                    card.innerHTML = `<div><h3>${escapeHTML(p.nombre)}</h3><p>Creado por ${escapeHTML(p.nombre_asesor)}</p><p>Desde $${Number(p.costo_estimado).toLocaleString('es-CO')} COP</p></div><span class="badge-estado pendiente">Pendiente</span>`;
+                    card.addEventListener('click', () => abrirRevisionAdmin(p.id_plan)); cont.appendChild(card);
+                });
+            } catch (e) { mostrarToast(e.message, true); }
+        }
+
+        async function abrirRevisionAdmin(idPlan) {
+            try {
+                const res = await fetch(`${API_URL}/admin/pendientes/${idPlan}`), p = await res.json();
+                if (!res.ok) throw new Error(p.error || 'No se pudo cargar el plan.');
+                planRevisionActual = p;
+                document.getElementById('admin-revision-titulo').innerText = p.nombre;
+                document.getElementById('admin-revision-precio').innerText = `Costo estimado: $${Number(p.costo_estimado).toLocaleString('es-CO')} COP`;
+                document.getElementById('admin-revision-datos').innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días · ${p.datos_viajero.tipo_viajero} · Intereses: ${p.datos_viajero.intereses}`;
+                document.getElementById('admin-revision-asesor').innerText = `Creado por: ${p.nombre_asesor}`;
+                document.getElementById('admin-revision-incluye').innerText = p.incluye || 'No especificado';
+                document.getElementById('admin-revision-no-incluye').innerText = p.no_incluye || 'No especificado';
+                const img = document.getElementById('admin-revision-img');
+                if (img) {
+                    const fallback = img.nextElementSibling;
+
+                    if (fallback && fallback.classList.contains("img-fallback")) {
+                        fallback.remove();
+                    }
+
+                    img.style.display = "";
+                    img.onerror = () => usarFallbackImg(img, p.destino);
+
+                    if (p.imagen_url) {
+                        img.src = p.imagen_url;
+                    } else {
+                        img.removeAttribute("src");
+                        usarFallbackImg(img, p.destino);
+                    }
+                }
+                document.getElementById('admin-revision-itinerario').innerHTML = (p.itinerario?.dias || []).map(d => `<div class="dia-item"><h4>Día ${d.numero_dia}</h4><p>${escapeHTML(d.descripcion_resumen)}</p></div>`).join('') || '<p>Sin itinerario.</p>';
+                document.getElementById('admin-motivo-rechazo').value = ''; mostrarVista('admin-revision');
+            } catch (e) { mostrarToast(e.message, true); }
+        }
+
+        async function decidirRevisionAdmin(decision) {
+            if (!planRevisionActual) return;
+            const motivo = document.getElementById('admin-motivo-rechazo').value.trim();
+            if (decision === 'Rechazado' && motivo.length > 0 && motivo.length < 10) { mostrarToast('Si escribes un motivo, debe tener al menos 10 caracteres.', true); return; }
+            try {
+                const res = await fetch(`${API_URL}/admin/revision`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_plan:planRevisionActual.id_plan, decision, motivo})});
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'No se pudo procesar la revisión.');
+                planRevisionActual = null; mostrarToast(`Plan ${decision.toLowerCase()} exitosamente.`); mostrarVista('admin-panel');
+            } catch (e) { mostrarToast(e.message, true); }
+        }
+
+        
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const campoImagen = document.getElementById("crear-imagen");
+
+            campoImagen.addEventListener("change", function () {
+
+                const archivo = this.files[0];
+
+                const vistaPrevia = document.getElementById(
+                    "vista-previa-destino"
+                );
+
+                vistaPrevia.innerHTML = "";
+
+                if (!archivo) return;
+
+                const formatos = [
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp"
+                ];
+
+                if (!formatos.includes(archivo.type)) {
+                    mostrarToast(
+                        "Selecciona una imagen JPG, PNG o WEBP.",
+                        true
+                    );
+
+                    this.value = "";
+                    return;
+                }
+
+                if (archivo.size > 5 * 1024 * 1024) {
+                    mostrarToast(
+                        "La imagen no puede superar los 5 MB.",
+                        true
+                    );
+
+                    this.value = "";
+                    return;
+                }
+
+                const imagen = document.createElement("img");
+
+                imagen.src = URL.createObjectURL(archivo);
+
+                imagen.style.width = "200px";
+                imagen.style.height = "130px";
+                imagen.style.objectFit = "cover";
+                imagen.style.borderRadius = "12px";
+
+                vistaPrevia.appendChild(imagen);
+
+            });
+
+        });
+
+    </script>
+</body>
+</html>

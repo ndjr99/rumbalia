@@ -1,0 +1,7 @@
+# Recuerde poner aquí los datos de conexión y guardar como secret_config.py
+
+PGHOST='PONGA EL HOST DE LA BD AQUI'
+PGDATABASE='PONGA EL NOMBRE DE LA BD AQUI'
+PGUSER='PONGA EL USUARIO AQUI'
+PGPASSWORD='PONGA LA CONTRASEÑA AQUI'
+PGPORT=5432
