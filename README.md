@@ -198,7 +198,6 @@ El proyecto utiliza una arquitectura organizada por responsabilidades:
 - **Backend (`app.py`):** implementa las rutas de la aplicación, autenticación, control de permisos, validaciones y comunicación entre frontend y controlador.
 - **Frontend (`index.html`):** contiene la interfaz desarrollada con HTML, CSS y JavaScript.
 - **Base de datos (`sql/schema.sql`):** define las tablas, relaciones, restricciones y datos iniciales.
-- **Migraciones (`sql/`):** contiene scripts para actualizar estructuras de bases de datos existentes.
 - **Pruebas (`test/`):** contiene pruebas automatizadas del modelo.
 
 ## 8. Estructura de carpetas
@@ -214,8 +213,7 @@ Turismo/
 ├── .gitignore
 │
 ├── sql/
-│   ├── schema.sql
-│   └── migration_gestion_solicitudes.sql
+│   └── schema.sql
 │
 ├── src/
 │   ├── model/
@@ -365,45 +363,6 @@ la aplicación también intenta ejecutar `PlanesController.crear_tabla()`, que p
 
 **Importante:** el script incluye datos iniciales de prueba y operaciones de preparación de destinos y planes. Antes de ejecutarlo sobre una base de datos que ya contiene información real, realiza un respaldo y revisa las operaciones del script.
 
-## 12. Migraciones de bases de datos existentes
-
-Para actualizar una base de datos que ya contiene información, se deben utilizar las migraciones correspondientes y evitar recrear la base de datos.
-
-### Gestión de solicitudes
-
-Archivo:
-
-```text
-sql/migration_gestion_solicitudes.sql
-```
-
-Esta migración actualiza la estructura de `solicitudes_contacto` para incorporar:
-
-- Información de archivado.
-- Fecha de archivado.
-- Usuario que archivó la solicitud.
-- Fecha de última actualización.
-- Usuario responsable de la última actualización.
-- Información de eliminación definitiva.
-- Índices para mejorar las consultas.
-- Normalización de estados anteriores.
-
-La migración convierte los estados anteriores:
-
-- `Contactada` → `En gestión`.
-- `Cerrada` → `Atendida`.
-
-Debe ejecutarse después de contar con la tabla `solicitudes_contacto`, creada por `schema.sql`.
-
-Antes de ejecutar una migración en una base de datos existente:
-
-1. Realizar un respaldo de la base de datos.
-2. Verificar la estructura actual.
-3. Ejecutar el script correspondiente una sola vez.
-4. Comprobar que las tablas y registros continúen disponibles.
-
-No se deben ejecutar migraciones que no estén incluidas en el proyecto.
-
 ## 13. Ejecución local
 
 Desde la carpeta raíz `Turismo/`, con el entorno virtual activado:
@@ -465,7 +424,7 @@ No se debe subir `secret_config.py` al repositorio de GitHub.
 - Se debe verificar que la conexión a PostgreSQL funcione desde el servicio desplegado.
 - El comando de inicio utiliza Gunicorn.
 - Gunicorn importa la aplicación mediante `app:app`; por ello, no ejecuta el bloque `if __name__ == "__main__"` de `app.py`.
-- La base de datos debe estar inicializada previamente con el esquema y las migraciones necesarias.
+- La base de datos debe estar inicializada previamente con el esquema de la base de datos.
 - Las imágenes cargadas en el almacenamiento local del servicio pueden perderse al reiniciar o desplegar nuevamente el servicio, salvo que se configure almacenamiento persistente o externo.
 
 ## 15. Pruebas automatizadas
@@ -496,7 +455,7 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 - Las consultas SQL utilizan parámetros para reducir el riesgo de inyección SQL.
 - Las claves de PostgreSQL y Groq deben mantenerse fuera del repositorio.
 - Se recomienda utilizar una `SECRET_KEY` segura y diferente para producción.
-- Se recomienda realizar respaldos antes de ejecutar migraciones o eliminaciones definitivas.
+- Se recomienda realizar respaldos antes de realizar cambios importantes o eliminaciones definitivas.
 - La eliminación de solicitudes es irreversible.
 - La eliminación de cuentas de usuario conserva los registros necesarios para mantener la integridad referencial.
 
