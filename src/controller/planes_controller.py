@@ -511,7 +511,9 @@ class PlanesController:
                 """
                 SELECT COUNT(*)
                 FROM usuarios
-                WHERE rol = 'asesor';
+                WHERE rol = 'asesor'
+                  AND COALESCE(activo, TRUE) = TRUE
+                  AND COALESCE(eliminado, FALSE) = FALSE;
                 """
             )
             asesores_activos = cursor.fetchone()[0]
