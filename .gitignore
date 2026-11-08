@@ -1,2 +1,10 @@
-__pycache__
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.env
 secret_config.py
+/etc/secrets/
+static/uploads/destinos/*
+!static/uploads/destinos/.gitkeep

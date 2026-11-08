@@ -1,17 +1,9 @@
-# Recuerde poner aquí los datos de conexión y guardar como secret_config.py
+"""Plantilla segura: copia como secret_config.py o configura estas variables en el entorno."""
+import os
 
-# ==========================================
-# CONFIGURACIÓN DE BASE DE DATOS POSTGRESQL
-# ==========================================
-
-PGHOST = os.getenv("PGHOST", "PONGA EL HOST DE LA BD AQUI")
-PGDATABASE = os.getenv("PGDATABASE", "PONGA EL NOMBRE DE LA BD AQUI")
-PGUSER = os.getenv("PGUSER", "PONGA EL USUARIO AQUI")
-PGPASSWORD = os.getenv("PGPASSWORD", "PONGA LA CONTRASEÑA AQUI")
+PGHOST = os.getenv("PGHOST", "")
+PGDATABASE = os.getenv("PGDATABASE", "")
+PGUSER = os.getenv("PGUSER", "")
+PGPASSWORD = os.getenv("PGPASSWORD", "")
 PGPORT = int(os.getenv("PGPORT", "5432"))
-
-# ==========================================
-# CONFIGURACIÓN DE INTELIGENCIA ARTIFICIAL
-# ==========================================
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "PONGA SU KEY DE GROQ AQUI")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")

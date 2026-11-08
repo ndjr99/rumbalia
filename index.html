@@ -2302,104 +2302,142 @@
             return limpia.startsWith("/") ? limpia : `/${limpia.replace(/^\.\//, "")}`;
         }
 
-        function renderizarGaleriaEn(contenedorId, plan, clave) {
+        async function renderizarGaleriaEn(contenedorId, plan, clave) {
             const contenedor = document.getElementById(contenedorId);
             if (!contenedor) return;
-            if (window.__galeriaTimers?.[clave]) clearInterval(window.__galeriaTimers[clave]);
+
             window.__galeriaTimers = window.__galeriaTimers || {};
+            window.__galeriaRenderIds = window.__galeriaRenderIds || {};
 
-            const fotos = [...new Set([plan.imagen_url, ...(Array.isArray(plan.imagenes) ? plan.imagenes : [])]
-                .map(normalizarUrlImagen).filter(Boolean))];
-            contenedor.replaceChildren();
-            contenedor.classList.add("galeria-plan");
+            if (window.__galeriaTimers[clave]) {
+                clearInterval(window.__galeriaTimers[clave]);
+                window.__galeriaTimers[clave] = null;
+            }
 
-            const visor = document.createElement("div");
-            visor.className = "galeria-visor";
-            const imagen = document.createElement("img");
-            imagen.alt = `Fotografía de ${plan.destino || plan.nombre || "el plan"}`;
-            imagen.loading = "eager";
-            const fallback = document.createElement("div");
-            fallback.className = "galeria-fallback";
-            fallback.innerHTML = '<span style="font-size:2rem">✈</span><span>Fotografías del plan</span>';
-            imagen.addEventListener("error", () => {
-                imagen.style.display = "none";
-                fallback.classList.add("visible");
+            // Evita que una carga anterior reemplace una galería más reciente.
+            const renderId = (window.__galeriaRenderIds[clave] || 0) + 1;
+            window.__galeriaRenderIds[clave] = renderId;
+
+            // Combina portada y galería, normalizando y eliminando duplicados.
+            const urls = [...new Set([
+                plan.imagen_url,
+                ...(Array.isArray(plan.imagenes) ? plan.imagenes : [])
+            ].map(normalizarUrlImagen).filter(Boolean))];
+
+            // No contar imágenes que no se pueden descargar/decodificar.
+            const comprobarImagen = url => new Promise(resolve => {
+                const prueba = new Image();
+                prueba.onload = () => resolve(prueba.naturalWidth > 0 ? url : null);
+                prueba.onerror = () => resolve(null);
+                prueba.src = url;
             });
-            imagen.addEventListener("load", () => {
-                imagen.style.display = "block";
-                fallback.classList.remove("visible");
+
+            const fotos = (await Promise.all(urls.map(comprobarImagen))).filter(Boolean);
+            if (window.__galeriaRenderIds[clave] !== renderId) return;
+
+            contenedor.replaceChildren();
+            contenedor.classList.add('galeria-plan');
+
+            const visor = document.createElement('div');
+            visor.className = 'galeria-visor';
+
+            const imagen = document.createElement('img');
+            imagen.alt = `Fotografía de ${plan.destino || plan.nombre || 'el plan'}`;
+            imagen.loading = 'eager';
+
+            const fallback = document.createElement('div');
+            fallback.className = 'galeria-fallback';
+            fallback.innerHTML = '<span style="font-size:2rem">✈</span><span>Fotografías del plan</span>';
+            imagen.addEventListener('error', () => {
+                imagen.style.display = 'none';
+                fallback.classList.add('visible');
+            });
+            imagen.addEventListener('load', () => {
+                imagen.style.display = 'block';
+                fallback.classList.remove('visible');
             });
             visor.append(imagen, fallback);
 
-            const miniaturas = document.createElement("div");
-            miniaturas.className = "galeria-miniaturas";
-            miniaturas.setAttribute("aria-label", "Seleccionar fotografía");
-            const pie = document.createElement("div");
-            pie.className = "galeria-pie";
-            const contador = document.createElement("span");
-            const ampliar = document.createElement("button");
-            ampliar.type = "button";
-            ampliar.className = "galeria-abrir";
-            ampliar.textContent = "Ver imagen ampliada ↗";
-            pie.append(contador, ampliar);
-
-            let indiceActual = 0;
-            const botones = [];
-            const anterior = document.createElement("button");
-            anterior.type = "button"; anterior.className = "galeria-flecha anterior";
-            anterior.setAttribute("aria-label", "Fotografía anterior"); anterior.innerHTML = "&#8249;";
-            const siguiente = document.createElement("button");
-            siguiente.type = "button"; siguiente.className = "galeria-flecha siguiente";
-            siguiente.setAttribute("aria-label", "Fotografía siguiente"); siguiente.innerHTML = "&#8250;";
-
-            function seleccionar(indice) {
-                if (!fotos.length) return;
-                indiceActual = (indice + fotos.length) % fotos.length;
-                fallback.classList.remove("visible");
-                imagen.style.display = "block";
-                imagen.src = fotos[indiceActual];
-                contador.textContent = `${indiceActual + 1} de ${fotos.length} fotografías`;
-                botones.forEach((boton, i) => {
-                    boton.classList.toggle("activa", i === indiceActual);
-                    boton.setAttribute("aria-pressed", i === indiceActual ? "true" : "false");
-                });
-                botones[indiceActual]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-            }
-
             if (!fotos.length) {
-                imagen.style.display = "none";
-                fallback.classList.add("visible");
-                visor.append(fallback);
+                imagen.style.display = 'none';
+                fallback.classList.add('visible');
                 contenedor.append(visor);
                 return;
             }
 
+            const miniaturas = document.createElement('div');
+            miniaturas.className = 'galeria-miniaturas';
+            miniaturas.setAttribute('aria-label', 'Seleccionar fotografía');
+
+            const pie = document.createElement('div');
+            pie.className = 'galeria-pie';
+            const contador = document.createElement('span');
+            const ampliar = document.createElement('button');
+            ampliar.type = 'button';
+            ampliar.className = 'galeria-abrir';
+            ampliar.textContent = 'Ver imagen ampliada ↗';
+            pie.append(contador, ampliar);
+
+            let indiceActual = 0;
+            const botones = [];
+
+            const anterior = document.createElement('button');
+            anterior.type = 'button';
+            anterior.className = 'galeria-flecha anterior';
+            anterior.setAttribute('aria-label', 'Fotografía anterior');
+            anterior.innerHTML = '&#8249;';
+
+            const siguiente = document.createElement('button');
+            siguiente.type = 'button';
+            siguiente.className = 'galeria-flecha siguiente';
+            siguiente.setAttribute('aria-label', 'Fotografía siguiente');
+            siguiente.innerHTML = '&#8250;';
+
+            function seleccionar(indice) {
+                if (!fotos.length) return;
+                indiceActual = (indice + fotos.length) % fotos.length;
+                fallback.classList.remove('visible');
+                imagen.style.display = 'block';
+                imagen.src = fotos[indiceActual];
+                contador.textContent = `${indiceActual + 1} de ${fotos.length} fotografías`;
+                botones.forEach((boton, i) => {
+                    boton.classList.toggle('activa', i === indiceActual);
+                    boton.setAttribute('aria-pressed', i === indiceActual ? 'true' : 'false');
+                });
+            }
+
             fotos.forEach((url, indice) => {
-                const boton = document.createElement("button");
-                boton.type = "button";
-                boton.setAttribute("aria-label", `Ver fotografía ${indice + 1}`);
-                const miniatura = document.createElement("img");
-                miniatura.src = url; miniatura.alt = ""; miniatura.loading = "lazy";
-                miniatura.onerror = () => { boton.style.display = "none"; };
+                const boton = document.createElement('button');
+                boton.type = 'button';
+                boton.setAttribute('aria-label', `Ver fotografía ${indice + 1}`);
+                const miniatura = document.createElement('img');
+                miniatura.src = url;
+                miniatura.alt = '';
+                miniatura.loading = 'lazy';
                 boton.append(miniatura);
-                boton.addEventListener("click", () => seleccionar(indice));
-                botones.push(boton); miniaturas.append(boton);
+                boton.addEventListener('click', () => seleccionar(indice));
+                botones.push(boton);
+                miniaturas.append(boton);
             });
 
             if (fotos.length > 1) {
-                anterior.addEventListener("click", () => seleccionar(indiceActual - 1));
-                siguiente.addEventListener("click", () => seleccionar(indiceActual + 1));
+                anterior.addEventListener('click', () => seleccionar(indiceActual - 1));
+                siguiente.addEventListener('click', () => seleccionar(indiceActual + 1));
                 visor.append(anterior, siguiente);
             }
-            ampliar.addEventListener("click", () => {
-                if (imagen.requestFullscreen) imagen.requestFullscreen().catch(() => window.open(imagen.src, "_blank", "noopener"));
-                else window.open(imagen.src, "_blank", "noopener");
+
+            ampliar.addEventListener('click', () => {
+                if (imagen.requestFullscreen) {
+                    imagen.requestFullscreen().catch(() => window.open(imagen.src, '_blank', 'noopener'));
+                } else {
+                    window.open(imagen.src, '_blank', 'noopener');
+                }
             });
-            imagen.addEventListener("click", () => ampliar.click());
+            imagen.addEventListener('click', () => ampliar.click());
+
             contenedor.append(visor, miniaturas, pie);
             seleccionar(0);
 
-            // Rotación automática discreta; se pausa mientras el usuario interactúa.
             if (fotos.length > 1) {
                 const iniciar = () => {
                     if (window.__galeriaTimers[clave]) clearInterval(window.__galeriaTimers[clave]);
@@ -2409,10 +2447,10 @@
                     if (window.__galeriaTimers[clave]) clearInterval(window.__galeriaTimers[clave]);
                     window.__galeriaTimers[clave] = null;
                 };
-                contenedor.addEventListener("mouseenter", pausar);
-                contenedor.addEventListener("focusin", pausar);
-                contenedor.addEventListener("mouseleave", iniciar);
-                contenedor.addEventListener("focusout", iniciar);
+                contenedor.addEventListener('mouseenter', pausar);
+                contenedor.addEventListener('focusin', pausar);
+                contenedor.addEventListener('mouseleave', iniciar);
+                contenedor.addEventListener('focusout', iniciar);
                 iniciar();
             }
         }

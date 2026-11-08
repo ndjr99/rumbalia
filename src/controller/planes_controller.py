@@ -21,7 +21,23 @@ if str(SRC_DIR) not in sys.path:
 sys.path.insert(0, "/etc/secrets")
 
 import psycopg2
-import secret_config
+
+try:
+    import secret_config
+except ImportError:
+    secret_config = None
+
+
+def _config_value(nombre, default=None):
+    """Lee primero variables de entorno y luego secret_config.py."""
+    valor = os.getenv(nombre)
+    if valor not in (None, ""):
+        return valor
+    if secret_config is not None:
+        valor = getattr(secret_config, nombre, None)
+        if valor not in (None, ""):
+            return valor
+    return default
 
 from model.logic import (
     PlanTuristico,
@@ -42,12 +58,20 @@ class PlanesController:
 
     @staticmethod
     def obtener_cursor():
+        requeridas = ("PGDATABASE", "PGUSER", "PGPASSWORD", "PGHOST")
+        faltantes = [nombre for nombre in requeridas if not _config_value(nombre)]
+        if faltantes:
+            raise RuntimeError(
+                "Faltan variables de configuración de PostgreSQL: "
+                + ", ".join(faltantes)
+            )
+
         conexion = psycopg2.connect(
-            database=secret_config.PGDATABASE,
-            user=secret_config.PGUSER,
-            password=secret_config.PGPASSWORD,
-            host=secret_config.PGHOST,
-            port=secret_config.PGPORT,
+            database=_config_value("PGDATABASE"),
+            user=_config_value("PGUSER"),
+            password=_config_value("PGPASSWORD"),
+            host=_config_value("PGHOST"),
+            port=int(_config_value("PGPORT", "5432")),
             sslmode="require",
             connect_timeout=10
         )
@@ -210,7 +234,7 @@ class PlanesController:
                     )
 
             cursor.execute(
-                "SELECT imagen_url FROM imagenes_plan WHERE id_plan = %s ORDER BY id_imagen ASC;",
+                "SELECT DISTINCT imagen_url FROM imagenes_plan WHERE id_plan = %s ORDER BY imagen_url ASC;",
                 (id_plan,)
             )
             imagenes_plan = [r[0] for r in cursor.fetchall()]

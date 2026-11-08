@@ -294,15 +294,7 @@ secret_config.py
 
 Configurar los valores de conexión:
 
-```python
-PGHOST = "HOST_DE_POSTGRESQL"
-PGDATABASE = "NOMBRE_DE_LA_BASE"
-PGUSER = "USUARIO"
-PGPASSWORD = "CONTRASEÑA"
-PGPORT = 5432
-
-GROQ_API_KEY = "CLAVE_DE_GROQ"
-```
+Configura estos valores mediante variables de entorno (`PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT` y `GROQ_API_KEY`). También puedes copiar `secret_config_sample.py` como `secret_config.py`; la plantilla lee las variables de entorno y no contiene credenciales reales.
 
 El archivo `secret_config.py` contiene información sensible y no debe subirse al repositorio ni compartirse públicamente.
 
@@ -497,3 +489,16 @@ Se corrigió la lectura de la respuesta de Groq para reconocer correctamente los
 - Cuando se elimina un asesor, sus planes se conservan y aparecen en **Usuarios → Planes pendientes de reasignación** para que un administrador los asigne a un asesor activo.
 - Cada reasignación se registra en `historial_asignaciones_planes` (plan, asesor anterior, nuevo asesor, administrador y fecha). La tabla se crea automáticamente al consultar la sección y también está incluida en `sql/schema.sql`.
 - Las solicitudes de interés se pueden enviar como visitante o desde una cuenta cliente. Las sesiones de asesor y administrador reciben HTTP 403 tanto si intentan abrir el formulario como si llaman directamente al endpoint.
+
+## Configuración local segura
+
+1. Instala las dependencias: `python -m pip install -r requirements.txt`.
+2. Copia `secret_config_sample.py` como `secret_config.py` en la raíz del proyecto.
+3. Define las variables `PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT` y `GROQ_API_KEY` en el entorno antes de iniciar la aplicación. El archivo `secret_config.py` no se incluye en el ZIP por seguridad.
+4. Inicia el servidor con `python app.py`.
+
+No subas `secret_config.py`, `.env` ni claves reales a Git. En Render configura esas variables en el panel de Environment o usa un secret file.
+
+## Galería de fotografías
+
+La galería ahora valida la carga de cada imagen antes de contarla y elimina URLs repetidas. Las rutas antiguas que continúen en PostgreSQL pero apunten a archivos inexistentes no se mostrarán. En producción, usa almacenamiento persistente para las imágenes; el sistema de archivos efímero de un servicio web puede perder archivos al reiniciar o desplegar.
