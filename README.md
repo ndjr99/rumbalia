@@ -491,3 +491,9 @@ ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;
 ## Corrección de generación de itinerarios con IA
 
 Se corrigió la lectura de la respuesta de Groq para reconocer correctamente los campos `NOMBRE` y `DESCRIPCION`, además de encabezados de día con formatos comunes (por ejemplo, `Día 1:`, `**Día 1:**` o `### Día 1:`). La validación continúa exigiendo exactamente la cantidad de días solicitada.
+
+## Reasignación de planes y permisos de solicitudes
+
+- Cuando se elimina un asesor, sus planes se conservan y aparecen en **Usuarios → Planes pendientes de reasignación** para que un administrador los asigne a un asesor activo.
+- Cada reasignación se registra en `historial_asignaciones_planes` (plan, asesor anterior, nuevo asesor, administrador y fecha). La tabla se crea automáticamente al consultar la sección y también está incluida en `sql/schema.sql`.
+- Las solicitudes de interés se pueden enviar como visitante o desde una cuenta cliente. Las sesiones de asesor y administrador reciben HTTP 403 tanto si intentan abrir el formulario como si llaman directamente al endpoint.

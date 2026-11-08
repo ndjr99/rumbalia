@@ -590,3 +590,14 @@ CREATE INDEX IF NOT EXISTS idx_solicitudes_plan_estado
     ON solicitudes_contacto(id_plan, estado);
 CREATE INDEX IF NOT EXISTS idx_solicitudes_archivadas
     ON solicitudes_contacto(archivada, fecha_archivado DESC);
+
+
+-- Historial de reasignaciones cuando un asesor deja la plataforma.
+CREATE TABLE IF NOT EXISTS historial_asignaciones_planes (
+    id_historial SERIAL PRIMARY KEY,
+    id_plan INTEGER NOT NULL REFERENCES planes(id_plan) ON DELETE CASCADE,
+    id_asesor_anterior INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    id_asesor_nuevo INTEGER NOT NULL REFERENCES usuarios(id_usuario),
+    id_admin INTEGER REFERENCES usuarios(id_usuario),
+    fecha_asignacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

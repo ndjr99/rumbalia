@@ -1760,6 +1760,11 @@
             </div>
             <h2 style="font-size:1.15rem;margin:1.5rem 0 .8rem;color:var(--azul-principal);">Cuentas registradas</h2>
             <div id="admin-lista-usuarios"></div>
+            <div class="card-formulario" style="margin:1.5rem 0;padding:1.2rem;border:1px solid var(--gris-borde);border-radius:16px;background:#fff;">
+                <h2 style="font-size:1.15rem;margin:0 0 .35rem;color:var(--azul-principal);">Planes pendientes de reasignación</h2>
+                <p style="color:var(--texto-gris);margin:.2rem 0 1rem;">Aquí aparecen los planes cuyo asesor fue eliminado o que quedaron sin responsable. Asígnalos a un asesor activo para que pueda continuar gestionándolos.</p>
+                <div id="admin-planes-sin-asesor"></div>
+            </div>
         </section>
 
         <section id="vista-admin-reportes" class="oculto">
@@ -1870,6 +1875,8 @@
 
         function renderHeaderNav() {
             const nav = document.getElementById("menu-navegacion");
+            const botonSolicitudPlan = document.querySelector("#vista-detalle-plan .btn-reservar");
+            if (botonSolicitudPlan) botonSolicitudPlan.style.display = (!estadoSesion || estadoSesion.rol === 'cliente') ? '' : 'none';
             if (!estadoSesion) {
                 nav.innerHTML = `
                     <a onclick="mostrarVista('home')" class="activo">Reservar</a>
@@ -3305,6 +3312,31 @@
                     cont.innerHTML = `<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${data.map(u => `<tr><td>${escapeHTML(u.nombre)}</td><td>${escapeHTML(u.correo)}</td><td>${escapeHTML(u.rol)}</td><td><span class="badge-estado ${u.activo ? 'publicado' : 'borrador'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td><td><div class="acciones-usuario"><button class="btn-outline-blue" type="button" onclick="cambiarEstadoUsuario(${u.id_usuario},${!u.activo})">${u.activo ? 'Desactivar' : 'Activar'}</button><button class="btn-usuario-eliminar" type="button" onclick="eliminarUsuarioAdmin(${u.id_usuario},'${escapeHTML(u.nombre)}','${escapeHTML(u.rol)}')"><span aria-hidden="true" style="margin-right:.35rem">🗑</span>Eliminar</button></div></td></tr>`).join("")}</tbody></table></div><p style="color:var(--texto-gris);font-size:.85rem;margin-top:.7rem">Desactivar bloquea temporalmente el acceso. Eliminar anonimiza los datos personales, bloquea el acceso y conserva las relaciones necesarias para la trazabilidad.</p>`;
                 }
             } catch(e) { cont.innerHTML = `<p>${escapeHTML(e.message)}</p>`; }
+            await cargarPlanesSinAsesorAdmin();
+        }
+
+        async function cargarPlanesSinAsesorAdmin() {
+            const cont=document.getElementById('admin-planes-sin-asesor'); if(!cont) return;
+            cont.innerHTML='<p>Cargando planes...</p>';
+            try {
+                const res=await fetch(`${API_URL}/admin/planes-sin-asesor`), data=await res.json();
+                if(!res.ok) throw new Error(data.error || 'No se pudieron cargar los planes.');
+                if(!data.planes.length){cont.innerHTML='<p style="color:var(--texto-gris)">No hay planes pendientes de reasignación.</p>';return;}
+                cont.innerHTML=`<div style="display:grid;gap:.85rem">${data.planes.map(p=>`<div style="display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:1rem;border:1px solid var(--gris-borde);border-radius:12px"><div style="min-width:220px;flex:1"><strong>${escapeHTML(p.nombre)}</strong><div style="color:var(--texto-gris);font-size:.88rem">Estado: ${escapeHTML(p.estado)} · Responsable anterior: ${escapeHTML(p.asesor_anterior)}</div></div><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><select id="reasignar-plan-${p.id_plan}" class="input-box" style="min-width:210px"><option value="">Selecciona asesor activo</option>${data.asesores.map(a=>`<option value="${a.id_usuario}">${escapeHTML(a.nombre)}</option>`).join('')}</select><button class="btn-solid-blue" type="button" ${data.asesores.length?'':'disabled'} onclick="reasignarPlanAdmin(${p.id_plan})">Asignar plan</button></div></div>`).join('')}</div>`;
+                if(!data.asesores.length) cont.innerHTML+='<p style="color:var(--texto-gris);margin-top:.7rem">Primero crea o activa una cuenta de asesor para poder reasignar estos planes.</p>';
+            } catch(e){cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`;}
+        }
+
+        async function reasignarPlanAdmin(idPlan) {
+            const select=document.getElementById(`reasignar-plan-${idPlan}`), idAsesor=select?.value;
+            if(!idAsesor){mostrarToast('Selecciona el nuevo asesor.',true);return;}
+            const nombre=select.options[select.selectedIndex].text;
+            if(!(await confirmarAccion('¿Reasignar este plan?',`El plan quedará a cargo de ${nombre}. Se conservará el registro de la reasignación.`,`Sí, reasignar`))) return;
+            try {
+                const res=await fetch(`${API_URL}/admin/planes/${idPlan}/reasignar`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id_asesor_nuevo:Number(idAsesor)})});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo reasignar el plan.');
+                mostrarToast(data.mensaje || 'Plan reasignado.'); await cargarPlanesSinAsesorAdmin();
+            } catch(e){mostrarToast(e.message,true);}
         }
 
         async function cargarHistorialUsuariosEliminados() {

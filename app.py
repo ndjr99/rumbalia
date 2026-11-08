@@ -963,6 +963,11 @@ def agregar_imagenes_galeria(id_plan):
     methods=["POST"]
 )
 def crear_solicitud_cliente(id_plan):
+    # Las solicitudes pueden enviarse como visitante o desde una cuenta cliente,
+    # pero nunca desde cuentas internas (asesor/administrador).
+    usuario = usuario_actual()
+    if usuario and usuario.get("rol") != "cliente":
+        return jsonify({"error": "Las cuentas de asesor y administrador no pueden enviar solicitudes de clientes."}), 403
     try:
         datos = request.get_json(silent=True) or {}
         nombre = str(datos.get("nombre", "")).strip()
@@ -1306,6 +1311,92 @@ def eliminar_usuario_admin(id_usuario):
         if cursor: cursor.connection.rollback()
         app.logger.exception("Error al eliminar usuario")
         return jsonify({"error": "No fue posible eliminar la cuenta."}), 500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/planes-sin-asesor", methods=["GET"])
+def listar_planes_sin_asesor_admin():
+    """Planes cuyo asesor fue eliminado; permite recuperarlos y reasignarlos."""
+    _, error = requiere_rol("administrador")
+    if error: return error
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS historial_asignaciones_planes (
+                id_historial SERIAL PRIMARY KEY,
+                id_plan INTEGER NOT NULL REFERENCES planes(id_plan) ON DELETE CASCADE,
+                id_asesor_anterior INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+                id_asesor_nuevo INTEGER NOT NULL REFERENCES usuarios(id_usuario),
+                id_admin INTEGER REFERENCES usuarios(id_usuario),
+                fecha_asignacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        cursor.execute("""
+            SELECT p.id_plan, p.nombre, p.estado, p.fecha_creacion,
+                   u.nombre, u.id_usuario,
+                   COALESCE((SELECT COUNT(*) FROM historial_asignaciones_planes h WHERE h.id_plan=p.id_plan),0)
+              FROM planes p
+              LEFT JOIN usuarios u ON u.id_usuario=p.id_asesor
+             WHERE p.id_asesor IS NULL OR COALESCE(u.eliminado,FALSE)=TRUE
+             ORDER BY p.fecha_creacion DESC NULLS LAST, p.id_plan DESC;
+        """)
+        planes=[{"id_plan":r[0],"nombre":r[1],"estado":r[2],"fecha_creacion":r[3].isoformat() if r[3] else None,"asesor_anterior":r[4] or "Sin asesor","id_asesor_anterior":r[5],"reasignaciones":r[6]} for r in cursor.fetchall()]
+        cursor.execute("SELECT id_usuario,nombre,correo FROM usuarios WHERE rol='asesor' AND COALESCE(activo,TRUE)=TRUE AND COALESCE(eliminado,FALSE)=FALSE ORDER BY nombre;")
+        asesores=[{"id_usuario":r[0],"nombre":r[1],"correo":r[2]} for r in cursor.fetchall()]
+        cursor.connection.commit()
+        return jsonify({"planes":planes,"asesores":asesores}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error al consultar planes sin asesor")
+        return jsonify({"error":"No fue posible consultar los planes pendientes de reasignación."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/planes/<int:id_plan>/reasignar", methods=["PATCH"])
+def reasignar_plan_admin(id_plan):
+    admin, error = requiere_rol("administrador")
+    if error: return error
+    datos=request.get_json(silent=True) or {}
+    try: id_nuevo=int(datos.get("id_asesor_nuevo"))
+    except (TypeError,ValueError): return jsonify({"error":"Selecciona un asesor válido."}),400
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS historial_asignaciones_planes (
+                id_historial SERIAL PRIMARY KEY,
+                id_plan INTEGER NOT NULL REFERENCES planes(id_plan) ON DELETE CASCADE,
+                id_asesor_anterior INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+                id_asesor_nuevo INTEGER NOT NULL REFERENCES usuarios(id_usuario),
+                id_admin INTEGER REFERENCES usuarios(id_usuario),
+                fecha_asignacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        cursor.execute("SELECT id_asesor FROM planes WHERE id_plan=%s FOR UPDATE;",(id_plan,))
+        fila=cursor.fetchone()
+        if not fila:
+            cursor.connection.rollback(); return jsonify({"error":"Plan no encontrado."}),404
+        id_anterior=fila[0]
+        cursor.execute("SELECT 1 FROM usuarios WHERE id_usuario=%s AND rol='asesor' AND COALESCE(activo,TRUE)=TRUE AND COALESCE(eliminado,FALSE)=FALSE;",(id_nuevo,))
+        if not cursor.fetchone():
+            cursor.connection.rollback(); return jsonify({"error":"El asesor seleccionado no existe o no está activo."}),400
+        cursor.execute("SELECT 1 FROM usuarios WHERE id_usuario=%s AND COALESCE(eliminado,FALSE)=TRUE;",(id_anterior,))
+        anterior_eliminado = id_anterior is None or cursor.fetchone() is not None
+        if not anterior_eliminado:
+            cursor.connection.rollback(); return jsonify({"error":"Este plan todavía pertenece a un asesor activo. Solo se reasignan planes de asesores eliminados o sin asignar."}),409
+        if id_anterior == id_nuevo:
+            cursor.connection.rollback(); return jsonify({"error":"Selecciona un asesor diferente."}),400
+        cursor.execute("UPDATE planes SET id_asesor=%s WHERE id_plan=%s;",(id_nuevo,id_plan))
+        cursor.execute("INSERT INTO historial_asignaciones_planes (id_plan,id_asesor_anterior,id_asesor_nuevo,id_admin) VALUES (%s,%s,%s,%s);",(id_plan,id_anterior,id_nuevo,admin["id_usuario"]))
+        cursor.connection.commit()
+        return jsonify({"mensaje":"Plan reasignado correctamente. El nuevo asesor ya puede gestionarlo."}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error al reasignar plan")
+        return jsonify({"error":"No fue posible reasignar el plan."}),500
     finally:
         if cursor: PlanesController._cerrar_cursor(cursor)
 
