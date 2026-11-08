@@ -1,6 +1,6 @@
-# Diseñador Inteligente de Planes Turísticos – MVP
+# RUMBALIA – Plataforma Inteligente de Planes Turísticos
 
-Aplicación web para la creación, consulta y administración de planes turísticos mediante inteligencia artificial, desarrollada con Python, Flask, PostgreSQL, HTML, CSS y JavaScript.
+Aplicación web para la creación, consulta y administración de planes turísticos personalizados mediante inteligencia artificial. El sistema permite conectar a clientes, asesores turísticos y administradores a través de una plataforma desarrollada con Python, Flask, PostgreSQL, HTML, CSS y JavaScript.
 
 ## Autores
 
@@ -8,65 +8,200 @@ Aplicación web para la creación, consulta y administración de planes turísti
 - Isabella Quintero Gutiérrez
 - Nelson David Jiménez Ruiz
 
+---
+
 ## 1. Descripción del proyecto
 
-El Diseñador Inteligente de Planes Turísticos permite gestionar planes de viaje y facilitar la creación de itinerarios personalizados según las características y preferencias del viajero.
+Rumbalia es una plataforma web orientada a facilitar la creación y consulta de experiencias turísticas personalizadas. Permite que los asesores diseñen planes de viaje con ayuda de inteligencia artificial, que los administradores supervisen y gestionen su publicación y que los clientes exploren los planes disponibles y soliciten información.
 
-La aplicación contempla tres roles:
+La aplicación contempla tres roles principales:
 
-- **Asesor:** crea planes turísticos, genera itinerarios con inteligencia artificial, edita las propuestas, guarda borradores y envía planes a revisión.
-- **Administrador:** consulta los planes pendientes, revisa su información y decide si los aprueba o rechaza.
-- **Cliente:** consulta los planes publicados y visualiza sus detalles e itinerarios.
+- **Cliente:** explora los planes turísticos publicados, consulta sus características e itinerarios y puede enviar solicitudes de contacto sin necesidad de crear una cuenta.
+- **Asesor:** crea planes turísticos, genera itinerarios mediante inteligencia artificial, edita la información, administra borradores, envía planes a revisión y gestiona las solicitudes de los clientes.
+- **Administrador:** supervisa los planes enviados a revisión, aprueba o rechaza propuestas, consulta estadísticas, administra las cuentas de usuario y gestiona las solicitudes de contacto.
 
-## 2. Alcance del MVP – Sprint 1
+## 2. Funcionalidades del MVP
 
-El MVP contempla las siguientes funcionalidades:
+### 2.1. Funcionalidades generales
 
-- Inicio de sesión y control de acceso según el rol del usuario.
+- Inicio de sesión con autenticación y control de acceso según el rol.
+- Registro público de clientes.
+- Gestión de sesiones y cierre de sesión.
+- Protección de rutas según los permisos de cada usuario.
+- Interfaz web adaptable a diferentes tamaños de pantalla.
+
+### 2.2. Funcionalidades del cliente
+
 - Consulta de planes turísticos publicados.
 - Exploración de destinos por continente.
-- Visualización del detalle de los planes y sus itinerarios.
-- Creación de planes turísticos por parte del asesor.
+- Visualización de la ficha descriptiva de cada plan.
+- Consulta de itinerarios, duración, presupuesto, destino, servicios incluidos y servicios no incluidos.
+- Búsqueda de planes por destino, país, intereses, presupuesto y duración.
+- Exploración de experiencias según intereses turísticos.
+- Consulta de ofertas disponibles.
+- Visualización de la información institucional de Rumbalia.
+- Envío de solicitudes de contacto desde los planes publicados, sin necesidad de iniciar sesión.
+- Confirmación del envío de la solicitud.
+
+### 2.3. Funcionalidades del asesor
+
+- Creación de planes turísticos.
 - Generación de itinerarios mediante inteligencia artificial.
-- Edición de los días del itinerario generado.
-- Guardado de planes como borradores.
+- Edición de la información comercial del plan.
+- Edición de los días y descripciones del itinerario.
+- Guardado y consulta de borradores.
 - Envío de planes para revisión administrativa.
-- Panel de administración para consultar planes pendientes.
-- Aprobación o rechazo de planes por parte del administrador.
-- Persistencia de usuarios, destinos, planes, itinerarios y revisiones en PostgreSQL.
+- Regreso de planes rechazados al estado de borrador.
+- Actualización de la imagen principal de un plan.
+- Administración de la galería de imágenes.
+- Eliminación de planes en estado Borrador o Publicado.
+- Consulta de reportes propios.
+- Consulta de solicitudes recibidas para sus planes.
+- Actualización del estado de las solicitudes.
+- Archivado, desarchivado y eliminación definitiva de solicitudes.
 
-Las funcionalidades que no hacen parte de este alcance quedan para sprints posteriores.
+### 2.4. Funcionalidades del administrador
 
-## 3. Tecnologías utilizadas
+- Consulta de planes pendientes de revisión.
+- Visualización del detalle de los planes enviados.
+- Aprobación o rechazo de planes.
+- Registro del motivo de rechazo.
+- Consulta de estadísticas generales.
+- Administración de usuarios.
+- Creación de cuentas de asesores y administradores.
+- Activación y desactivación de cuentas.
+- Eliminación lógica y anonimización de cuentas de usuario, conservando la integridad de los registros relacionados.
+- Consulta de reportes generales.
+- Consulta y gestión de todas las solicitudes de contacto.
+- Filtrado de solicitudes por estado, asesor y fechas de recepción.
+- Actualización del estado de las solicitudes.
+- Archivado, desarchivado y eliminación definitiva de solicitudes.
 
-- **Python 3:** lenguaje principal del backend.
-- **Flask:** framework para el servidor y la API.
-- **PostgreSQL:** sistema de gestión de base de datos.
-- **Psycopg2:** conexión entre Python y PostgreSQL.
-- **HTML5:** estructura de la interfaz.
-- **CSS3:** estilos y diseño adaptable.
-- **JavaScript:** interacción con el usuario y consumo de la API mediante `fetch()`.
-- **OpenAI API:** generación de propuestas de itinerarios turísticos.
-- **Flask-CORS:** configuración de solicitudes entre orígenes.
+## 3. Flujo de estados de los planes
 
-## 4. Arquitectura del proyecto
+Los planes turísticos utilizan los siguientes estados:
 
-El sistema utiliza una arquitectura organizada por capas:
+| Estado | Descripción |
+|---|---|
+| Borrador | Plan creado por el asesor que puede continuar editándose. |
+| Pendiente | Plan enviado por el asesor y pendiente de revisión administrativa. |
+| Publicado | Plan aprobado y disponible para consulta pública. |
 
-- **Modelo (`src/model/logic.py`):** contiene las clases y reglas de negocio relacionadas con los usuarios, los datos del viajero, los planes turísticos, la generación de itinerarios y las revisiones.
-- **Controlador (`src/controller/planes_controller.py`):** gestiona las operaciones de persistencia y consultas a PostgreSQL.
-- **Backend (`app.py`):** implementa las rutas de la aplicación, las validaciones de solicitudes, la autenticación y la comunicación entre la interfaz y el controlador.
+El flujo general es:
+
+1. El asesor crea un plan.
+2. El plan se guarda como borrador.
+3. El asesor completa la información y el itinerario.
+4. El asesor envía el plan a revisión.
+5. El administrador aprueba o rechaza la propuesta.
+6. Si se aprueba, el plan pasa a estado Publicado.
+7. Si se rechaza, el plan regresa a estado Borrador para que el asesor pueda corregirlo.
+
+Los planes pendientes no pueden eliminarse mientras se encuentran en revisión. Los asesores pueden eliminar sus propios borradores y planes publicados.
+
+## 4. Gestión de solicitudes de contacto
+
+Rumbalia permite que los visitantes manifiesten interés en los planes turísticos publicados mediante un formulario de contacto.
+
+El visitante proporciona:
+
+- Nombre.
+- Correo electrónico.
+- Número de teléfono.
+- Mensaje opcional.
+
+La solicitud queda almacenada en PostgreSQL y asociada al plan seleccionado.
+
+### Estados de las solicitudes
+
+| Estado | Descripción |
+|---|---|
+| Nueva | Solicitud recibida y pendiente de gestión. |
+| En gestión | El asesor o administrador está realizando seguimiento. |
+| Atendida | La solicitud ya fue atendida. |
+
+### Administración de solicitudes
+
+- El asesor consulta únicamente las solicitudes relacionadas con sus propios planes.
+- El administrador puede consultar todas las solicitudes.
+- Los usuarios autorizados pueden actualizar el estado de una solicitud.
+- Las solicitudes pueden archivarse y desarchivarse.
+- Las solicitudes archivadas se conservan en el historial.
+- Se puede realizar la eliminación definitiva de una solicitud.
+- Se registra información de seguimiento, incluyendo fechas de actualización y usuarios responsables.
+
+La eliminación definitiva es irreversible.
+
+## 5. Catálogo público, búsqueda y ofertas
+
+### Experiencias
+
+La sección Experiencias permite explorar planes publicados según intereses turísticos, entre ellos:
+
+- Aventura.
+- Playa.
+- Cultura.
+- Naturaleza.
+- Gastronomía.
+- Familiar.
+
+### Buscador
+
+El buscador permite consultar planes publicados mediante los siguientes criterios:
+
+- Texto de búsqueda.
+- Destino.
+- País.
+- Interés.
+- Presupuesto máximo.
+- Duración mínima.
+- Duración máxima.
+
+La búsqueda normaliza mayúsculas y tildes para facilitar la localización de destinos y planes. Por ejemplo, permite encontrar «Medellín» al escribir «medellin».
+
+### Ofertas
+
+La sección Ofertas presenta el espacio destinado a las promociones de planes turísticos.
+
+El sistema permite consultar las ofertas que tengan un descuento configurado y cuya vigencia corresponda a la fecha actual. Si no existen promociones activas, se informa al visitante sin mostrar descuentos ficticios.
+
+La estructura de la base de datos contempla:
+
+- Porcentaje de descuento.
+- Fecha de inicio de la oferta.
+- Fecha de finalización de la oferta.
+
+## 6. Tecnologías utilizadas
+
+| Tecnología | Uso |
+|---|---|
+| Python 3 | Lenguaje principal del backend. |
+| Flask | Framework para el servidor y la API. |
+| PostgreSQL | Sistema de gestión de base de datos. |
+| Psycopg2 | Conexión entre Python y PostgreSQL. |
+| HTML5 | Estructura de la interfaz. |
+| CSS3 | Diseño visual y estilos adaptables. |
+| JavaScript | Interactividad y comunicación con la API. |
+| Groq API | Servicio de inteligencia artificial para generar itinerarios. |
+| OpenAI Python SDK | Cliente compatible utilizado para comunicarse con la API de Groq. |
+| Werkzeug | Funciones de seguridad para el manejo de contraseñas. |
+| Flask-CORS | Configuración de solicitudes entre orígenes. |
+| Gunicorn | Servidor WSGI para el despliegue. |
+| Render | Plataforma de despliegue de la aplicación. |
+
+## 7. Arquitectura del proyecto
+
+El proyecto utiliza una arquitectura organizada por responsabilidades:
+
+- **Modelo (`src/model/logic.py`):** contiene las clases y reglas de negocio de usuarios, datos del viajero, planes turísticos, itinerarios, generación mediante IA y revisiones.
+- **Controlador (`src/controller/planes_controller.py`):** gestiona las consultas, operaciones de persistencia y comunicación con PostgreSQL.
+- **Backend (`app.py`):** implementa las rutas de la aplicación, autenticación, control de permisos, validaciones y comunicación entre frontend y controlador.
 - **Frontend (`index.html`):** contiene la interfaz desarrollada con HTML, CSS y JavaScript.
-- **Base de datos (`sql/schema.sql`):** define las tablas y los datos iniciales del sistema.
-- **Pruebas (`test/`):** contiene las pruebas automatizadas del modelo.
+- **Base de datos (`sql/schema.sql`):** define las tablas, relaciones, restricciones y datos iniciales.
+- **Migraciones (`sql/`):** contiene scripts para actualizar estructuras de bases de datos existentes.
+- **Pruebas (`test/`):** contiene pruebas automatizadas del modelo.
 
-## Promociones y búsqueda sin tildes
-
-La búsqueda pública normaliza mayúsculas y tildes en destino, país, nombre del plan e intereses. Por ejemplo, `medellin` encuentra `Medellín`. La normalización SQL usa `translate()` y no requiere instalar la extensión PostgreSQL `unaccent`.
-
-Para habilitar ofertas en una base de datos existente, ejecutar una sola vez el script `sql/migration_ofertas.sql` en PostgreSQL. La migración agrega el porcentaje de descuento y las fechas de vigencia; los planes existentes quedan con descuento 0 y no se eliminan ni modifican sus datos comerciales. El asesor puede definir la promoción en el formulario del borrador antes de enviarlo a revisión. Solo se muestran ofertas de planes publicados cuya vigencia incluya la fecha actual.
-
-## 5. Estructura de carpetas
+## 8. Estructura de carpetas
 
 ```text
 Turismo/
@@ -74,15 +209,13 @@ Turismo/
 ├── app.py
 ├── index.html
 ├── requirements.txt
-├── secret_config.py
-├── secret_config_sample.py
 ├── README.md
-│
-├── docs/
-│   └── Implementación del MVP de planes turísticos
+├── secret_config_sample.py
+├── .gitignore
 │
 ├── sql/
-│   └── schema.sql
+│   ├── schema.sql
+│   └── migration_gestion_solicitudes.sql
 │
 ├── src/
 │   ├── model/
@@ -94,6 +227,9 @@ Turismo/
 │       └── planes_controller.py
 │
 ├── static/
+│   ├── img/
+│   │   └── logo-rumbalia.png
+│   │
 │   └── uploads/
 │       └── destinos/
 │
@@ -102,23 +238,23 @@ Turismo/
     └── test_logic.py
 ```
 
-## 6. Requisitos previos
+## 9. Requisitos previos
 
 Para ejecutar el proyecto se necesita:
 
 - Python 3.
 - PostgreSQL.
 - Una base de datos PostgreSQL accesible.
-- Una clave de API de OpenAI para utilizar la generación de itinerarios.
+- Una clave de API de Groq para utilizar la generación de itinerarios.
 - Las dependencias especificadas en `requirements.txt`.
 
-## 7. Instalación y configuración
+## 10. Instalación y configuración local
 
-### 7.1. Clonar o descargar el proyecto
+### 10.1. Obtener el proyecto
 
-Ubicarse en la carpeta raíz `Turismo/`.
+Descargar o clonar el repositorio y ubicarse en la carpeta raíz `Turismo/`.
 
-### 7.2. Crear un entorno virtual
+### 10.2. Crear un entorno virtual
 
 En Windows:
 
@@ -134,15 +270,17 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 7.3. Instalar las dependencias
+### 10.3. Instalar las dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 7.4. Configurar PostgreSQL
+### 10.4. Configurar PostgreSQL
 
-Copiar el archivo:
+Crear una base de datos PostgreSQL y preparar el archivo de configuración local.
+
+Copiar:
 
 ```text
 secret_config_sample.py
@@ -154,33 +292,125 @@ y crear una copia llamada:
 secret_config.py
 ```
 
-Configurar los datos de conexión a PostgreSQL:
+Configurar los valores de conexión:
 
 ```python
-PGHOST = "su_host"
-PGDATABASE = "nombre_de_la_base_de_datos"
-PGUSER = "su_usuario"
-PGPASSWORD = "su_contraseña"
+PGHOST = "HOST_DE_POSTGRESQL"
+PGDATABASE = "NOMBRE_DE_LA_BASE"
+PGUSER = "USUARIO"
+PGPASSWORD = "CONTRASEÑA"
 PGPORT = 5432
+
+GROQ_API_KEY = "CLAVE_DE_GROQ"
 ```
 
-El archivo `secret_config.py` contiene información sensible y no debe publicarse en el repositorio.
+El archivo `secret_config.py` contiene información sensible y no debe subirse al repositorio ni compartirse públicamente.
 
-### 7.5. Configurar la API de OpenAI
+### 10.5. Configurar la inteligencia artificial
 
-Configurar la clave de API de OpenAI según el mecanismo de configuración utilizado por el proyecto.
+Rumbalia utiliza Groq para generar itinerarios turísticos mediante un modelo compatible con la API de OpenAI.
 
-No publicar la clave en el repositorio ni compartirla públicamente.
+La clave se configura mediante:
 
-## 8. Ejecución del proyecto
+```python
+GROQ_API_KEY = "CLAVE_DE_GROQ"
+```
 
-Desde la carpeta raíz:
+También puede proporcionarse mediante una variable de entorno con el mismo nombre.
+
+Sin una clave válida, las funcionalidades de generación mediante IA no estarán disponibles.
+
+## 11. Base de datos
+
+Rumbalia utiliza PostgreSQL para almacenar usuarios, destinos, planes, itinerarios, solicitudes y revisiones administrativas.
+
+### Tablas principales
+
+| Tabla | Descripción |
+|---|---|
+| `usuarios` | Almacena los usuarios, credenciales, roles y estado de las cuentas. |
+| `destinos` | Contiene los destinos turísticos disponibles. |
+| `planes` | Almacena los planes turísticos creados por los asesores. |
+| `imagenes_plan` | Almacena las fotografías asociadas a cada plan. |
+| `itinerarios` | Relaciona cada plan con su itinerario. |
+| `dias_itinerario` | Almacena las actividades correspondientes a cada día. |
+| `revisiones` | Registra las decisiones administrativas sobre los planes. |
+| `solicitudes_contacto` | Almacena las solicitudes enviadas por los visitantes y su seguimiento. |
+
+### Relaciones y consideraciones
+
+- Un asesor puede crear varios planes turísticos.
+- Cada plan está relacionado con un destino.
+- Cada plan puede tener un itinerario.
+- Un itinerario puede contener varios días.
+- Cada plan puede tener varias imágenes.
+- Las solicitudes de contacto están relacionadas con el plan de interés.
+- Las revisiones están relacionadas con los planes y los administradores responsables.
+
+Las relaciones que corresponden utilizan claves foráneas para mantener la integridad de los datos. La eliminación de un plan también elimina los registros dependientes configurados con `ON DELETE CASCADE`.
+
+### Inicialización de una base de datos nueva
+
+El archivo `sql/schema.sql` contiene la estructura de las tablas, restricciones, índices y datos iniciales de prueba.
+
+Para inicializar una base de datos nueva, se puede ejecutar el script desde una herramienta de administración de PostgreSQL.
+
+Al ejecutar localmente:
 
 ```bash
 python app.py
 ```
 
-Al iniciar mediante este comando, la aplicación ejecuta la inicialización de la base de datos utilizando `sql/schema.sql`.
+la aplicación también intenta ejecutar `PlanesController.crear_tabla()`, que procesa el archivo `sql/schema.sql`.
+
+**Importante:** el script incluye datos iniciales de prueba y operaciones de preparación de destinos y planes. Antes de ejecutarlo sobre una base de datos que ya contiene información real, realiza un respaldo y revisa las operaciones del script.
+
+## 12. Migraciones de bases de datos existentes
+
+Para actualizar una base de datos que ya contiene información, se deben utilizar las migraciones correspondientes y evitar recrear la base de datos.
+
+### Gestión de solicitudes
+
+Archivo:
+
+```text
+sql/migration_gestion_solicitudes.sql
+```
+
+Esta migración actualiza la estructura de `solicitudes_contacto` para incorporar:
+
+- Información de archivado.
+- Fecha de archivado.
+- Usuario que archivó la solicitud.
+- Fecha de última actualización.
+- Usuario responsable de la última actualización.
+- Información de eliminación definitiva.
+- Índices para mejorar las consultas.
+- Normalización de estados anteriores.
+
+La migración convierte los estados anteriores:
+
+- `Contactada` → `En gestión`.
+- `Cerrada` → `Atendida`.
+
+Debe ejecutarse después de contar con la tabla `solicitudes_contacto`, creada por `schema.sql`.
+
+Antes de ejecutar una migración en una base de datos existente:
+
+1. Realizar un respaldo de la base de datos.
+2. Verificar la estructura actual.
+3. Ejecutar el script correspondiente una sola vez.
+4. Comprobar que las tablas y registros continúen disponibles.
+
+No se deben ejecutar migraciones que no estén incluidas en el proyecto.
+
+## 13. Ejecución local
+
+Desde la carpeta raíz `Turismo/`, con el entorno virtual activado:
+
+```bash
+python app.py
+```
 
 La aplicación estará disponible en:
 
@@ -188,22 +418,57 @@ La aplicación estará disponible en:
 http://127.0.0.1:5000
 ```
 
-## 9. Base de datos
+Para detener el servidor, utilizar `Ctrl + C` en la terminal.
 
-El proyecto utiliza PostgreSQL y contempla las siguientes tablas:
+## 14. Despliegue en Render
 
-| Tabla | Descripción |
+La aplicación puede desplegarse como un servicio web de Python en Render.
+
+### Configuración del servicio
+
+| Parámetro | Valor |
 |---|---|
-| `usuarios` | Almacena usuarios, credenciales y roles. |
-| `destinos` | Contiene los destinos turísticos disponibles. |
-| `planes` | Almacena los planes turísticos creados. |
-| `itinerarios` | Relaciona cada plan con su itinerario. |
-| `dias_itinerario` | Almacena las actividades de cada día. |
-| `revisiones` | Registra las decisiones administrativas. |
+| Runtime | Python 3 |
+| Branch | `main` |
+| Root Directory | Vacío si `app.py` está en la raíz del repositorio. |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `gunicorn app:app` |
 
-La estructura y los datos iniciales se encuentran en `sql/schema.sql`.
+### Variables de entorno
 
-## 10. Pruebas automatizadas
+Configurar en Render las variables necesarias:
+
+```text
+SECRET_KEY
+GROQ_API_KEY
+```
+
+También se pueden configurar las variables de conexión de PostgreSQL si se utiliza el archivo de configuración de ejemplo basado en variables de entorno.
+
+### Archivo secreto de PostgreSQL
+
+Si se utiliza el mecanismo de archivo secreto, crear en Render un Secret File con el nombre:
+
+```text
+secret_config.py
+```
+
+El archivo debe contener los parámetros de conexión a PostgreSQL y la clave de Groq.
+
+La aplicación busca este archivo en `/etc/secrets/`.
+
+No se debe subir `secret_config.py` al repositorio de GitHub.
+
+### Consideraciones para Render
+
+- El servicio web debe estar conectado a la base de datos PostgreSQL correspondiente.
+- Se debe verificar que la conexión a PostgreSQL funcione desde el servicio desplegado.
+- El comando de inicio utiliza Gunicorn.
+- Gunicorn importa la aplicación mediante `app:app`; por ello, no ejecuta el bloque `if __name__ == "__main__"` de `app.py`.
+- La base de datos debe estar inicializada previamente con el esquema y las migraciones necesarias.
+- Las imágenes cargadas en el almacenamiento local del servicio pueden perderse al reiniciar o desplegar nuevamente el servicio, salvo que se configure almacenamiento persistente o externo.
+
+## 15. Pruebas automatizadas
 
 El proyecto contiene pruebas unitarias en:
 
@@ -211,126 +476,43 @@ El proyecto contiene pruebas unitarias en:
 test/test_logic.py
 ```
 
-Para ejecutarlas desde la carpeta raíz:
+Para ejecutarlas desde la raíz del proyecto:
 
 ```bash
 python -m unittest discover -s test -p "test_*.py" -v
 ```
 
-El resultado de las pruebas debe verificarse después de instalar las dependencias necesarias.
+Las pruebas deben ejecutarse con las dependencias instaladas.
 
-## 11. Consideraciones del MVP
+Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de pruebas y no directamente sobre la base de datos de producción.
 
-- Los planes turísticos deben conservar su relación con el destino y el asesor que los creó.
-- Cada plan debe tener asociado su itinerario y los días correspondientes cuando exista una propuesta generada.
-- Los planes enviados a revisión deben poder ser consultados por el administrador.
-- Los planes aprobados quedan disponibles para su consulta pública.
-- Los planes rechazados deben conservar la información del motivo de rechazo cuando corresponda.
-- La información debe mantenerse persistida en PostgreSQL.
+## 16. Seguridad y buenas prácticas
+
+- Las contraseñas de los usuarios se almacenan utilizando funciones de hash seguro.
+- Las rutas administrativas y de asesor cuentan con validación de rol.
+- El registro público permite crear cuentas únicamente con rol de cliente.
+- Los roles de asesor y administrador son gestionados desde el panel administrativo.
+- Las operaciones de los asesores deben limitarse a sus propios planes y solicitudes.
+- Las consultas SQL utilizan parámetros para reducir el riesgo de inyección SQL.
+- Las claves de PostgreSQL y Groq deben mantenerse fuera del repositorio.
+- Se recomienda utilizar una `SECRET_KEY` segura y diferente para producción.
+- Se recomienda realizar respaldos antes de ejecutar migraciones o eliminaciones definitivas.
+- La eliminación de solicitudes es irreversible.
+- La eliminación de cuentas de usuario conserva los registros necesarios para mantener la integridad referencial.
+
+## 17. Consideraciones y limitaciones del MVP
+
+- La generación de itinerarios depende de la disponibilidad de la API de Groq y de una clave válida.
+- Los resultados generados mediante inteligencia artificial deben ser revisados por el asesor antes de enviarse a aprobación.
+- Las ofertas solo se muestran cuando tienen descuentos y fechas de vigencia configurados.
+- La aplicación almacena las imágenes en el directorio local `static/uploads/destinos`; para producción se recomienda utilizar almacenamiento persistente o un servicio externo de imágenes.
+- Las solicitudes de contacto son gestionadas dentro de la plataforma; el registro de una solicitud no implica que se haya enviado automáticamente un correo electrónico al cliente.
+- El proyecto corresponde a un producto mínimo viable (MVP), por lo que puede ampliarse con nuevas funcionalidades en versiones posteriores.
 
 ---
 
-**Proyecto:** Diseñador Inteligente de Planes Turísticos.
+**Proyecto:** Rumbalia – Plataforma Inteligente de Planes Turísticos.
 
-**Versión:** MVP – Sprint 1.
+**Versión:** MVP.
 
-## 12. Funcionalidades integradas en esta versión
-
-- El asesor puede eliminar sus planes en estado **Borrador** o **Publicado**.
-  Los planes pendientes de revisión quedan protegidos.
-- El asesor puede reemplazar la imagen de un plan desde la pantalla de edición
-  del borrador. La imagen se guarda a nivel de plan, para no modificar la
-  fotografía compartida de otros planes del mismo destino.
-- El visitante puede enviar una solicitud de contacto desde el detalle de un
-  plan publicado, sin crear una cuenta.
-- El asesor puede consultar las solicitudes recibidas para sus propios planes.
-- La tabla `solicitudes_contacto` almacena nombre, correo, teléfono, mensaje,
-  estado y fecha de recepción.
-
-### Migración de base de datos
-
-Al iniciar la aplicación, `PlanesController.crear_tabla()` ejecuta
-`sql/schema.sql`. El script agrega `planes.imagen_url` con
-`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` y crea `solicitudes_contacto`
-si todavía no existe. No elimina las tablas ni los registros actuales.
-
-### Endpoints nuevos
-
-| Método | Ruta | Uso |
-|---|---|---|
-| PUT | `/api/planes/<id>/imagen` | Cambiar la imagen de un borrador propio (asesor). |
-| POST | `/api/planes/<id>/solicitudes` | Registrar interés de un visitante en un plan publicado. |
-| GET | `/api/asesor/solicitudes` | Consultar solicitudes de los planes del asesor autenticado. |
-
-
-## Catálogo público y secciones complementarias
-
-El menú público incluye ahora las secciones **Experiencias**, **Ofertas** y **Nosotros**.
-
-- **Experiencias:** permite filtrar planes publicados por intereses (aventura, playa, cultura, naturaleza, gastronomía y familiar).
-- **Ofertas:** muestra el espacio de promociones y, mientras no existan promociones configuradas, informa de forma explícita que no hay ofertas activas. No calcula ni inventa descuentos.
-- **Nosotros:** presenta una descripción general de la plataforma y sus principios de orientación, descubrimiento y acompañamiento.
-- **Buscador:** consulta planes publicados por destino, país, duración, interés y presupuesto máximo. Destino y país se filtran por separado para evitar confundir ciudades con el mismo nombre.
-
-### Endpoint de búsqueda pública
-
-`GET /api/planes/buscar` admite los parámetros opcionales `q`, `destino`, `pais`, `interes`, `presupuesto_max`, `duracion_min` y `duracion_max`. La consulta usa parámetros SQL y devuelve exclusivamente planes con estado `Publicado`.
-
-La sección Ofertas queda preparada visualmente, pero la administración de promociones/descuentos (precio anterior, vigencia y publicación) requiere una siguiente iteración de datos y permisos; hasta entonces no se mostrarán descuentos ficticios.
-
-
-## Registro de clientes y seguimiento (actualización MVP)
-
-- El formulario público permite crear cuentas únicamente con rol `cliente`.
-- El endpoint `POST /api/registro` valida nombre, correo, contraseña y aceptación del tratamiento de datos; las contraseñas se guardan con hash seguro de Werkzeug.
-- Al completar el registro se inicia sesión automáticamente. Asesores y administradores no pueden autoasignarse esos roles desde el registro público.
-- El panel del asesor incluye reportes propios y actualización del estado de sus solicitudes (`Nueva`, `Contactada`, `Cerrada`).
-- El administrador puede consultar las solicitudes globales desde su nueva sección.
-
-
-## Gestión de cuentas administrativas (RUMBALIA)
-
-Antes de desplegar esta versión sobre una base de datos existente, ejecutar una sola vez `sql/migration_usuarios_activos.sql`. La migración agrega `usuarios.activo` y conserva todas las cuentas actuales como activas. En instalaciones nuevas, `schema.sql` ya incluye la columna.
-
-Desde Administrador > Usuarios se pueden crear cuentas de asesor y administrador, activar/desactivar cuentas y solicitar su eliminación. La eliminación es lógica (desactivación): se conserva el historial de planes y revisiones y se impide el inicio de sesión. No se permite desactivar la propia cuenta ni dejar el sistema sin administradores activos. El registro público continúa creando únicamente clientes.
-
-
-### Migración de eliminación lógica de usuarios
-
-Antes de desplegar esta versión sobre una base de datos existente, ejecutar una sola vez `sql/migration_usuarios_eliminados.sql`. Agrega `usuarios.eliminado` y `usuarios.fecha_eliminacion` sin borrar cuentas ni relaciones. La sección Usuarios separa las cuentas activas/desactivadas del historial de cuentas eliminadas. Las cuentas eliminadas no pueden iniciar sesión.
-
-
-## Gestión de solicitudes (actualización)
-
-Para actualizar una base de datos existente, ejecutar una sola vez `sql/migration_gestion_solicitudes.sql`. Esta migración agrega los datos de archivado y auditoría y normaliza los estados anteriores (`Contactada` → `En gestión`, `Cerrada` → `Atendida`).
-
-Las solicitudes activas aparecen en la bandeja principal. Asesores gestionan únicamente las solicitudes de sus planes; administradores pueden gestionar todas. Al archivar, la solicitud deja de aparecer en la bandeja principal y queda visible automáticamente en el historial correspondiente. Los registros no se eliminan físicamente.
-
-
-## Gestión y seguimiento de solicitudes de contacto
-
-La versión actual incorpora seguimiento comercial para asesor y administrador:
-
-- Estados permitidos: **Nueva**, **En gestión** y **Atendida**.
-- El asesor consulta únicamente solicitudes asociadas a sus propios planes.
-- El administrador consulta todas las solicitudes y puede filtrar por estado, asesor y fechas de recepción.
-- Ambos roles pueden archivar solicitudes; el historial se carga automáticamente al abrir la sección.
-- Archivar no elimina el registro. No se ofrece eliminación definitiva desde las bandejas.
-- Se conservan fecha de recepción, fecha de actualización y usuario que realizó la última actualización.
-
-### Actualizar una base de datos existente
-
-Antes de desplegar esta versión sobre una base PostgreSQL ya utilizada, realiza un respaldo y ejecuta una sola vez `sql/migration_gestion_solicitudes.sql`. La migración es idempotente: agrega los campos de trazabilidad, normaliza los estados antiguos `Contactada` y `Cerrada`, y crea los índices necesarios. En una base nueva, `sql/schema.sql` ya incluye estos campos.
-
-Las pruebas de integración con PostgreSQL deben ejecutarse contra una base de pruebas; no se han realizado sobre las credenciales reales de producción.
-
-
-## Ajustes de gestión de solicitudes y privacidad de usuarios
-
-- Asesor y administrador pueden archivar y desarchivar solicitudes.
-- Asesor y administrador pueden eliminar físicamente solicitudes activas o archivadas. Esta acción es irreversible.
-- El detalle de cada solicitud muestra los datos de contacto, plan, fecha de recepción y comentario (o indica que no se dejó comentario).
-- Al eliminar una cuenta, RUMBALIA bloquea el acceso y anonimiza nombre, correo y contraseña almacenada. La fila técnica se conserva para no romper las relaciones de planes y registros históricos.
-- Las cuentas eliminadas ya no se muestran en el listado habitual de usuarios ni en una pantalla de historial con datos personales.
-
-Ejecuta `sql/migration_gestion_solicitudes.sql` una sola vez en la base de datos (después de hacer un respaldo) para aplicar los cambios de esquema y anonimizar las cuentas que ya estaban marcadas como eliminadas.
+**Tecnologías principales:** Python, Flask, PostgreSQL, HTML, CSS y JavaScript.
