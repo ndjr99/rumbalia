@@ -9,7 +9,8 @@ from model.logic import (
     DatosViajero,
     Itinerario,
     PlanTuristico,
-    RevisionPlan
+    RevisionPlan,
+    GeneradorItinerarioIA
 )
 
 
@@ -91,6 +92,26 @@ class TestLogicModulo1(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             plan.enviar_a_revision()
+
+
+    def test_parsear_itinerario_tres_dias(self):
+        respuesta_ia = """NOMBRE: Escapada entre montañas y colores
+DESCRIPCION: Descubre paisajes, cultura y aventura en una experiencia especial por el destino.
+Día 1: Llegada, recorrido por el pueblo y visita a sus principales atractivos.
+Día 2: Caminata por senderos naturales y actividades junto al embalse.
+Día 3: Desayuno, visita a talleres artesanales y regreso.
+"""
+        itinerario = GeneradorItinerarioIA._parsear(respuesta_ia, 3)
+        self.assertTrue(itinerario.esta_completo(3))
+        self.assertEqual([dia.numero_dia for dia in itinerario.dias], [1, 2, 3])
+
+    def test_parsear_itinerario_tres_dias_con_formato_markdown(self):
+        respuesta_ia = """**Día 1:** Llegada y recorrido por el destino.
+### Día 2: Visita a atractivos naturales.
+- Día 3 - Desayuno y regreso.
+"""
+        itinerario = GeneradorItinerarioIA._parsear(respuesta_ia, 3)
+        self.assertTrue(itinerario.esta_completo(3))
 
     def test_motivo_rechazo_admin_invalido(self):
         with self.assertRaises(ValueError):

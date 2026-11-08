@@ -412,7 +412,7 @@ Devuelve la descripción y las líneas del itinerario en ese orden, sin títulos
         # 6. Interpretar y validar el itinerario.
         try:
             coincidencia_nombre = re.search(
-                r"^\\s*NOMBRE\\s*:\\s*(.+?)\\s*$",
+                r"^\s*NOMBRE\s*:\s*(.+?)\s*$",
                 texto,
                 re.IGNORECASE | re.MULTILINE
             )
@@ -421,7 +421,7 @@ Devuelve la descripción y las líneas del itinerario en ese orden, sin títulos
                 if coincidencia_nombre else ""
             )
             coincidencia_descripcion = re.search(
-                r"^\\s*DESCRIPCION\\s*:\\s*(.+?)(?=^\\s*Día\\s+\\d+\\s*:|\\Z)",
+                r"^\s*DESCRIPCI[ÓO]N\s*:\s*(.+?)(?=^\s*\**(?:D[ií]a|Day)\s+\d+\s*(?:\**\s*:|:)|\Z)",
                 texto,
                 re.IGNORECASE | re.MULTILINE | re.DOTALL
             )
@@ -441,8 +441,7 @@ Devuelve la descripción y las líneas del itinerario en ese orden, sin títulos
             return nombre, descripcion, itinerario
         except ValueError as error:
             raise RuntimeError(
-                "La IA no generó un itinerario válido con todos los días "
-                "solicitados. Inténtalo nuevamente."
+                f"No se pudo interpretar la respuesta de la IA: {error}"
             ) from error
 
     @staticmethod
@@ -451,7 +450,7 @@ Devuelve la descripción y las líneas del itinerario en ese orden, sin títulos
 
         for linea in texto.strip().splitlines():
             coincidencia = re.match(
-                r"^\s*(?:[-*]\s*)?\**Día\s+(\d+)\**\s*:\s*(.+)$",
+                r"^\s*(?:#{1,6}\s*)?(?:[-*]\s*)?\**(?:D[ií]a|Day)\s+(\d+)\**\s*(?::|[-–—])\**\s*(.+)$",
                 linea,
                 re.IGNORECASE
             )

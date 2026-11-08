@@ -487,3 +487,7 @@ La columna `planes.descripcion` ya está contemplada en `sql/schema.sql`. Si la 
 ```sql
 ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;
 ```
+
+## Corrección de generación de itinerarios con IA
+
+Se corrigió la lectura de la respuesta de Groq para reconocer correctamente los campos `NOMBRE` y `DESCRIPCION`, además de encabezados de día con formatos comunes (por ejemplo, `Día 1:`, `**Día 1:**` o `### Día 1:`). La validación continúa exigiendo exactamente la cantidad de días solicitada.
