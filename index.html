@@ -1797,6 +1797,8 @@
                 <div class="detalle-left">
                     <div class="precio-tag" id="admin-revision-precio"></div>
                     <p id="admin-revision-datos"></p>
+                    <h3>Descripción del plan</h3>
+                    <p id="admin-revision-descripcion" class="desc-text">No hay una descripción disponible.</p>
                     <h3>Itinerario propuesto</h3><div id="admin-revision-itinerario"></div>
                     <h3>Incluye</h3><p id="admin-revision-incluye"></p>
                     <h3>No incluye</h3><p id="admin-revision-no-incluye"></p>
@@ -1987,6 +1989,13 @@
             if (avisoRechazo) avisoRechazo.classList.add("oculto");
             const textoRechazo = document.getElementById("editar-motivo-rechazo");
             if (textoRechazo) textoRechazo.textContent = "";
+
+            const botonGenerar = document.getElementById("btn-generar-ia");
+            if (botonGenerar) {
+                botonGenerar.disabled = false;
+                botonGenerar.classList.remove("btn-cargando");
+                botonGenerar.textContent = "Generar itinerario con IA";
+            }
 
             planActualObjeto = null;
             idPlanActual = null;
@@ -3458,6 +3467,11 @@
                 if (!res.ok) throw new Error(p.error || 'No se pudo cargar el plan.');
                 planRevisionActual = p;
                 document.getElementById('admin-revision-titulo').innerText = p.nombre;
+                const descripcionRevision = document.getElementById('admin-revision-descripcion');
+                if (descripcionRevision) {
+                    descripcionRevision.innerText = (p.descripcion || '').trim() ||
+                        'La IA no generó una descripción para este plan.';
+                }
                 document.getElementById('admin-revision-precio').innerText = `Costo estimado: $${Number(p.costo_estimado).toLocaleString('es-CO')} COP`;
                 document.getElementById('admin-revision-datos').innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días · ${p.datos_viajero.tipo_viajero} · Intereses: ${p.datos_viajero.intereses}`;
                 document.getElementById('admin-revision-asesor').innerText = `Creado por: ${p.nombre_asesor}`;
