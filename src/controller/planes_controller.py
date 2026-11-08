@@ -835,7 +835,9 @@ class PlanesController:
             cursor.execute(
                 """
                 UPDATE planes
-                SET incluye = %s,
+                SET nombre = COALESCE(NULLIF(%s, ''), nombre),
+                    descripcion = %s,
+                    incluye = %s,
                     no_incluye = %s,
                     costo_estimado = %s,
                     descuento_porcentaje = %s,
@@ -844,7 +846,7 @@ class PlanesController:
                 WHERE id_plan = %s
                   AND estado = 'Borrador';
                 """,
-                (incluye, no_incluye, costo, descuento, oferta_fecha_inicio, oferta_fecha_fin, id_plan)
+                (nombre, descripcion, incluye, no_incluye, costo, descuento, oferta_fecha_inicio, oferta_fecha_fin, id_plan)
             )
 
             if cursor.rowcount == 0:

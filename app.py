@@ -608,7 +608,7 @@ def generar_plan_ia():
             )
 
         # Generar el itinerario.
-        itinerario = GeneradorItinerarioIA.generar(
+        nombre_plan, descripcion_plan, itinerario = GeneradorItinerarioIA.generar(
             destino,
             datos_viajero,
             pais=pais,
@@ -623,7 +623,8 @@ def generar_plan_ia():
 
         plan = PlanTuristico(
             id_plan=None,
-            nombre=f"{destino} - {datos_viajero.duracion_dias} días",
+            nombre=nombre_plan[:150],
+            descripcion=descripcion_plan,
             destino=destino,
             datos_viajero=datos_viajero,
             id_asesor=usuario["id_usuario"],
@@ -812,6 +813,8 @@ def editar_informacion_plan(id_plan):
             incluye=datos.get("incluye"),
             no_incluye=datos.get("no_incluye"),
             costo_estimado=datos.get("costo_estimado"),
+            nombre=datos.get("nombre"),
+            descripcion=datos.get("descripcion"),
             descuento_porcentaje=datos.get("descuento_porcentaje", 0),
             oferta_fecha_inicio=datos.get("oferta_fecha_inicio"),
             oferta_fecha_fin=datos.get("oferta_fecha_fin")

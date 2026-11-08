@@ -476,4 +476,14 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 
 **Versión:** MVP.
 
-**Tecnologías principales:** Python, Flask, PostgreSQL, HTML, CSS y JavaScript.
+**Tecnologías principales:** Python, Flask, PostgreSQL, HTML, CSS y JavaScript.\n\n### Nombre y descripción comercial de los planes\n\nDurante la creación, el asesor puede escribir un nombre comercial para el plan. Si no lo especifica, Rumbalia conserva el nombre sugerido por destino y duración. La IA genera tanto el itinerario como una descripción comercial del viaje; el asesor puede editar ambos textos antes de enviar el plan a revisión. La descripción se muestra debajo de la galería de imágenes en el detalle público.\n\nLa tabla `planes` incluye la columna `descripcion`. En bases de datos ya existentes, ejecutar una sola vez `ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;` antes de desplegar esta versión. Esta actualización no requiere eliminar ni recrear tablas o registros.\n
+
+## Generación comercial con IA
+
+Al generar un plan, Groq devuelve ahora tres componentes: nombre comercial, descripción para el viajero e itinerario. El nombre y la descripción se muestran en el formulario de revisión para que el asesor pueda editarlos antes de continuar. Ambos campos se guardan junto con el plan y la descripción aparece debajo de la galería en el detalle público.
+
+La columna `planes.descripcion` ya está contemplada en `sql/schema.sql`. Si la base de datos existente no la tiene, ejecutar una sola vez:
+
+```sql
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;
+```

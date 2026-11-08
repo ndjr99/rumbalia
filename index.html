@@ -1521,6 +1521,9 @@
         <section id="vista-asesor-crear" class="oculto">
             <h1 class="titulo-seccion">Crear nuevo plan</h1>
             <div class="form-crear-container">
+                <p style="color:var(--texto-gris); margin-bottom:1rem;">
+                    Completa los datos del viaje y Rumbalia generará con IA el nombre comercial, la descripción y el itinerario. Podrás editarlos antes de enviar el plan a revisión.
+                </p>
                 <div class="form-row">
                     <label>Ciudad o destino</label>
                     <input
@@ -1617,6 +1620,19 @@
                 <small>Realiza los ajustes solicitados y vuelve a enviar el plan a revisión.</small>
             </div>
             
+            <div class="form-crear-container" style="margin-bottom:1.5rem;">
+                <h2 class="titulo-seccion" style="font-size:1.2rem;">Presentación del plan</h2>
+                <div class="form-row">
+                    <label for="editar-nombre-plan">Nombre comercial</label>
+                    <input type="text" id="editar-nombre-plan" class="input-box" maxlength="150">
+                </div>
+                <div class="form-row">
+                    <label for="editar-descripcion-plan">Descripción para el viajero</label>
+                    <textarea id="editar-descripcion-plan" class="input-box" rows="4" maxlength="1200" placeholder="La IA generará una descripción atractiva que puedes ajustar."></textarea>
+                    <small>Esta descripción aparecerá debajo de la galería en el detalle público del plan.</small>
+                </div>
+            </div>
+
             <div class="form-crear-container" style="margin-bottom:1.5rem;">
                 <h2 class="titulo-seccion" style="font-size:1.2rem;">Imagen del plan</h2>
                 <p style="color:var(--texto-gris); margin-bottom:1rem;">
@@ -1955,6 +1971,10 @@
 
             const titulo = document.getElementById("titulo-ia-resultado");
             if (titulo) titulo.textContent = "Nuevo plan turístico";
+            const nombreEdicion = document.getElementById("editar-nombre-plan");
+            if (nombreEdicion) nombreEdicion.value = "";
+            const descripcionEdicion = document.getElementById("editar-descripcion-plan");
+            if (descripcionEdicion) descripcionEdicion.value = "";
 
             const avisoRechazo = document.getElementById("editar-aviso-rechazo");
             if (avisoRechazo) avisoRechazo.classList.add("oculto");
@@ -2259,7 +2279,7 @@
                 document.getElementById("det-titulo").innerText = p.nombre;
                 document.getElementById("det-precio").innerText = `Precio: desde $${Number(p.costo_estimado).toLocaleString("es-CO")} COP`;
                 document.getElementById("det-sub").innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días`;
-                document.getElementById("det-descripcion").innerText = `Experiencia en ${p.destino}, diseñada para un viajero tipo ${p.datos_viajero.tipo_viajero}. Intereses: ${p.datos_viajero.intereses}.`;
+                document.getElementById("det-descripcion").innerText = p.descripcion || `Experiencia en ${p.destino}, diseñada para un viajero tipo ${p.datos_viajero.tipo_viajero}. Intereses: ${p.datos_viajero.intereses}.`;
                 renderizarGaleriaPlan(p);
                 document.getElementById("det-incluye").innerHTML = `<li>${escapeHTML(p.incluye || 'Información no especificada')}</li>`;
                 document.getElementById("det-no-incluye").innerHTML = `<li>${escapeHTML(p.no_incluye || 'Información no especificada')}</li>`;
@@ -2643,6 +2663,10 @@
                     avisoRechazo.classList.toggle("oculto", plan.decision_revision !== "Rechazado");
                 }
 
+                // Recuperar nombre y descripción comercial.
+                document.getElementById("editar-nombre-plan").value = plan.nombre || "";
+                document.getElementById("editar-descripcion-plan").value = plan.descripcion || "";
+
                 // Recuperar los datos comerciales.
                 document.getElementById("crear-incluye").value =
                     plan.incluye || "";
@@ -2848,8 +2872,10 @@
 
                 document.getElementById(
                     "titulo-ia-resultado"
-                ).innerText =
-                    `${planActualObjeto.destino} · ${planActualObjeto.datos_viajero.duracion_dias} días`;
+                ).innerText = planActualObjeto.nombre;
+
+                document.getElementById("editar-nombre-plan").value = planActualObjeto.nombre || "";
+                document.getElementById("editar-descripcion-plan").value = planActualObjeto.descripcion || "";
 
                 document.getElementById(
                     "ia-costo-input"
@@ -2998,6 +3024,8 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
+                            nombre: document.getElementById("editar-nombre-plan").value.trim(),
+                            descripcion: document.getElementById("editar-descripcion-plan").value.trim(),
                             incluye: incluye,
                             no_incluye: noIncluye,
                             costo_estimado: costo,
@@ -3072,6 +3100,8 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
+                            nombre: document.getElementById("editar-nombre-plan").value.trim(),
+                            descripcion: document.getElementById("editar-descripcion-plan").value.trim(),
                             incluye: incluye,
                             no_incluye: noIncluye,
                             costo_estimado: costo,

@@ -195,7 +195,8 @@ class PlanTuristico:
         no_incluye="",
         imagenes=None,
         decision_revision=None,
-        motivo_rechazo=""
+        motivo_rechazo="",
+        descripcion=""
     ):
         self.id_plan = id_plan
         self.nombre = nombre
@@ -211,6 +212,7 @@ class PlanTuristico:
         self.imagenes = imagenes or []
         self.decision_revision = decision_revision
         self.motivo_rechazo = motivo_rechazo or ""
+        self.descripcion = str(descripcion or "").strip()
 
     def enviar_a_revision(self):
         if not self.itinerario or not self.itinerario.esta_completo(
@@ -231,6 +233,7 @@ class PlanTuristico:
         return {
             "id_plan": self.id_plan,
             "nombre": self.nombre,
+            "descripcion": self.descripcion,
             "destino": self.destino,
             "datos_viajero": self.datos_viajero.to_dict(),
             "id_asesor": self.id_asesor,
@@ -315,22 +318,27 @@ Datos del viajero:
 - Intereses: {datos_viajero.intereses}.
 
 Instrucciones:
-1. Genera exactamente {datos_viajero.duracion_dias} días.
-2. Incluye actividades relevantes y diferentes para cada día.
-3. Usa lugares reales del destino dentro del país indicado; no inventes atracciones.
-4. No incluyas lugares de otros países aunque tengan el mismo nombre.
-5. Considera el presupuesto, el tipo de viajero y sus intereses.
-6. Organiza las actividades de forma lógica y evita traslados imposibles.
-7. No agregues introducciones ni conclusiones.
+1. Crea un nombre comercial original, memorable y atractivo, de máximo 90 caracteres. Debe transmitir la esencia de la experiencia; evita nombres genéricos como "Un viaje inolvidable" o "Plan turístico de varios días".
+2. Genera una descripción comercial atractiva del plan, de 70 a 110 palabras, en español.
+3. La descripción debe invitar a conocer el destino, explicar el valor de la experiencia y destacar actividades o ambientes reales. Evita frases genéricas, exageraciones y datos no confirmados.
+4. Genera exactamente {datos_viajero.duracion_dias} días.
+5. Incluye actividades relevantes y diferentes para cada día.
+6. Usa lugares reales del destino dentro del país indicado; no inventes atracciones.
+7. No incluyas lugares de otros países aunque tengan el mismo nombre.
+8. Considera el presupuesto, el tipo de viajero y sus intereses.
+9. Organiza las actividades de forma lógica y evita traslados imposibles.
+10. No agregues texto fuera del formato solicitado.
 
 Formato obligatorio:
+NOMBRE: [nombre comercial del plan]
+DESCRIPCION: [un único párrafo comercial de 70 a 110 palabras]
 Día 1: Lugar o zona - Descripción de las actividades.
 Día 2: Lugar o zona - Descripción de las actividades.
 
 Continúa hasta completar exactamente
 {datos_viajero.duracion_dias} días.
 
-Devuelve únicamente las líneas del itinerario.
+Devuelve la descripción y las líneas del itinerario en ese orden, sin títulos adicionales.
 """
 
         # 3. Verificar que el paquete necesario esté instalado.
@@ -403,10 +411,34 @@ Devuelve únicamente las líneas del itinerario.
 
         # 6. Interpretar y validar el itinerario.
         try:
-            return GeneradorItinerarioIA._parsear(
+            coincidencia_nombre = re.search(
+                r"^\\s*NOMBRE\\s*:\\s*(.+?)\\s*$",
+                texto,
+                re.IGNORECASE | re.MULTILINE
+            )
+            nombre = (
+                coincidencia_nombre.group(1).strip().strip('"“”')
+                if coincidencia_nombre else ""
+            )
+            coincidencia_descripcion = re.search(
+                r"^\\s*DESCRIPCION\\s*:\\s*(.+?)(?=^\\s*Día\\s+\\d+\\s*:|\\Z)",
+                texto,
+                re.IGNORECASE | re.MULTILINE | re.DOTALL
+            )
+            descripcion = (
+                coincidencia_descripcion.group(1).strip()
+                if coincidencia_descripcion else ""
+            )
+            if not nombre or len(nombre) > 150:
+                raise ValueError("La IA no generó un nombre comercial válido.")
+            if not descripcion:
+                raise ValueError("La IA no generó la descripción comercial.")
+
+            itinerario = GeneradorItinerarioIA._parsear(
                 texto,
                 datos_viajero.duracion_dias
             )
+            return nombre, descripcion, itinerario
         except ValueError as error:
             raise RuntimeError(
                 "La IA no generó un itinerario válido con todos los días "

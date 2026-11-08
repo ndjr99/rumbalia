@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS planes (
 );
 
 -- Migraciones seguras para bases de datos existentes.
-ALTER TABLE planes ADD COLUMN IF NOT EXISTS imagen_url TEXT;
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS imagen_url TEXT;\nALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;
 ALTER TABLE planes ADD COLUMN IF NOT EXISTS descuento_porcentaje NUMERIC(5,2) NOT NULL DEFAULT 0;
 ALTER TABLE planes ADD COLUMN IF NOT EXISTS oferta_fecha_inicio DATE;
 ALTER TABLE planes ADD COLUMN IF NOT EXISTS oferta_fecha_fin DATE;
