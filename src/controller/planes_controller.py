@@ -155,7 +155,8 @@ class PlanesController:
                     p.estado,
                     p.incluye,
                     p.no_incluye,
-                    COALESCE(p.imagen_url, d.imagen_url)
+                    COALESCE(p.imagen_url, d.imagen_url),
+                    p.descripcion
                 FROM planes p
                 JOIN destinos d ON p.id_destino = d.id_destino
                 WHERE p.id_plan = %s;
@@ -248,7 +249,8 @@ class PlanesController:
                 imagen_url=fila[12],
                 imagenes=imagenes_plan,
                 decision_revision=decision_revision,
-                motivo_rechazo=motivo_rechazo
+                motivo_rechazo=motivo_rechazo,
+                descripcion=fila[13] or ""
             )
 
         finally:
@@ -607,17 +609,18 @@ class PlanesController:
             cursor.execute(
                 """
                 INSERT INTO planes (
-                    nombre, id_destino, id_asesor,
+                    nombre, descripcion, id_destino, id_asesor,
                     duracion_dias, presupuesto,
                     tipo_viajero, intereses,
                     costo_estimado, estado,
                     incluye, no_incluye, imagen_url
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id_plan;
                 """,
                 (
                     plan.nombre,
+                    plan.descripcion,
                     id_destino,
                     plan.id_asesor,
                     plan.datos_viajero.duracion_dias,
