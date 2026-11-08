@@ -789,6 +789,8 @@ class PlanesController:
         incluye,
         no_incluye,
         costo_estimado,
+        nombre=None,
+        descripcion=None,
         descuento_porcentaje=0,
         oferta_fecha_inicio=None,
         oferta_fecha_fin=None
