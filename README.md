@@ -198,6 +198,7 @@ El proyecto utiliza una arquitectura organizada por responsabilidades:
 - **Backend (`app.py`):** implementa las rutas de la aplicación, autenticación, control de permisos, validaciones y comunicación entre frontend y controlador.
 - **Frontend (`index.html`):** contiene la interfaz desarrollada con HTML, CSS y JavaScript.
 - **Base de datos (`sql/schema.sql`):** define las tablas, relaciones, restricciones y datos iniciales.
+- **Base de datos (`sql/`):** contiene el esquema principal de PostgreSQL (`schema.sql`).
 - **Pruebas (`test/`):** contiene pruebas automatizadas del modelo.
 
 ## 8. Estructura de carpetas
@@ -213,7 +214,8 @@ Turismo/
 ├── .gitignore
 │
 ├── sql/
-│   └── schema.sql
+│   ├── schema.sql
+
 │
 ├── src/
 │   ├── model/
@@ -363,7 +365,7 @@ la aplicación también intenta ejecutar `PlanesController.crear_tabla()`, que p
 
 **Importante:** el script incluye datos iniciales de prueba y operaciones de preparación de destinos y planes. Antes de ejecutarlo sobre una base de datos que ya contiene información real, realiza un respaldo y revisa las operaciones del script.
 
-## 13. Ejecución local
+## 12. Ejecución local
 
 Desde la carpeta raíz `Turismo/`, con el entorno virtual activado:
 
@@ -379,7 +381,7 @@ http://127.0.0.1:5000
 
 Para detener el servidor, utilizar `Ctrl + C` en la terminal.
 
-## 14. Despliegue en Render
+## 13. Despliegue en Render
 
 La aplicación puede desplegarse como un servicio web de Python en Render.
 
@@ -424,10 +426,10 @@ No se debe subir `secret_config.py` al repositorio de GitHub.
 - Se debe verificar que la conexión a PostgreSQL funcione desde el servicio desplegado.
 - El comando de inicio utiliza Gunicorn.
 - Gunicorn importa la aplicación mediante `app:app`; por ello, no ejecuta el bloque `if __name__ == "__main__"` de `app.py`.
-- La base de datos debe estar inicializada previamente con el esquema de la base de datos.
+- La base de datos debe estar inicializada previamente con el esquema principal de la base de datos.
 - Las imágenes cargadas en el almacenamiento local del servicio pueden perderse al reiniciar o desplegar nuevamente el servicio, salvo que se configure almacenamiento persistente o externo.
 
-## 15. Pruebas automatizadas
+## 14. Pruebas automatizadas
 
 El proyecto contiene pruebas unitarias en:
 
@@ -445,7 +447,7 @@ Las pruebas deben ejecutarse con las dependencias instaladas.
 
 Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de pruebas y no directamente sobre la base de datos de producción.
 
-## 16. Seguridad y buenas prácticas
+## 15. Seguridad y buenas prácticas
 
 - Las contraseñas de los usuarios se almacenan utilizando funciones de hash seguro.
 - Las rutas administrativas y de asesor cuentan con validación de rol.
@@ -459,7 +461,7 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 - La eliminación de solicitudes es irreversible.
 - La eliminación de cuentas de usuario conserva los registros necesarios para mantener la integridad referencial.
 
-## 17. Consideraciones y limitaciones del MVP
+## 16. Consideraciones y limitaciones del MVP
 
 - La generación de itinerarios depende de la disponibilidad de la API de Groq y de una clave válida.
 - Los resultados generados mediante inteligencia artificial deben ser revisados por el asesor antes de enviarse a aprobación.

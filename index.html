@@ -633,6 +633,19 @@
             background: #FFFFFF;
         }
 
+        /* Flecha uniforme y con espacio respecto al borde en todos los selectores. */
+        select.input-box,
+        select.input-pill {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding-right: 3.25rem !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2315397A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1.25rem center;
+            cursor: pointer;
+        }
+
         .input-box::placeholder { color: var(--texto-gris); opacity: 0.75; }
 
         .input-box[readonly] { color: var(--texto-gris); background: #FAFAFA; }
@@ -1093,13 +1106,6 @@
         .buscador-encabezado span, .texto-intro-publico { color:var(--texto-gris); line-height:1.6; }
         .filtros-busqueda { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; }
         .filtros-busqueda .input-pill { min-width:0; width:100%; }
-        .filtros-busqueda select.input-pill {
-            appearance:none; -webkit-appearance:none; -moz-appearance:none;
-            padding-right:3.8rem;
-            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2315397A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-            background-repeat:no-repeat; background-position:right 1.55rem center;
-            cursor:pointer;
-        }
         .admin-subnav { display:flex; flex-wrap:wrap; gap:.65rem; margin:0 0 1.4rem; }
         .admin-subnav button { border:1px solid #dce5f2; background:#fff; color:var(--azul-principal); border-radius:999px; padding:.65rem 1rem; cursor:pointer; font-weight:600; }
         .admin-subnav button:hover { background:#eef3fb; }
@@ -1143,16 +1149,7 @@
             overflow-wrap:anywhere;
             line-height:1.45;
         }
-        .select-estado-solicitud {
-            appearance:none;
-            -webkit-appearance:none;
-            -moz-appearance:none;
-            padding-right:2.8rem !important;
-            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2315397A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-            background-repeat:no-repeat;
-            background-position:right 1rem center;
-            cursor:pointer;
-        }
+        .select-estado-solicitud { cursor: pointer; }
         /* Acciones de solicitudes: ambos botones comparten exactamente la misma caja. */
         .acciones-solicitud-asesor {
             display:grid;
@@ -3181,28 +3178,7 @@
                 const res=await fetch(`${API_URL}/asesor/solicitudes/archivadas`), data=await res.json();
                 if(!res.ok) throw new Error(data.error || 'No se pudo cargar el historial.');
                 if(!data.length){cont.innerHTML='<p style="color:var(--texto-gris)">Todavía no hay solicitudes archivadas.</p>';return;}
-                cont.innerHTML=`<div class="lista-solicitudes-admin">${data.map(s=>`
-                    <article class="item-plan-filas tarjeta-solicitud-asesor">
-                        <div class="informacion-solicitud-asesor">
-                            <h3>${escapeHTML(s.nombre)}</h3>
-                            <p><strong>Plan:</strong> ${escapeHTML(s.nombre_plan)}</p>
-                            <p><strong>Correo:</strong> <a href="mailto:${escapeHTML(s.correo)}">${escapeHTML(s.correo)}</a></p>
-                            <p><strong>Teléfono:</strong> <a href="tel:${escapeHTML(s.telefono)}">${escapeHTML(s.telefono)}</a></p>
-                            <details class="solicitud-detalle"><summary>Ver detalle de la solicitud</summary>
-                                <div class="solicitud-detalle-contenido">
-                                    <p><strong>Comentario del cliente</strong><br>${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p>
-                                    <p><strong>Fecha de recepción</strong><br>${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p>
-                                    <p><strong>Fecha de archivo</strong><br>${s.fecha_archivado?new Date(s.fecha_archivado).toLocaleString('es-CO'):'—'}</p>
-                                </div>
-                            </details>
-                        </div>
-                        <div class="acciones-solicitud-asesor">
-                            <label class="texto-secundario">Estado</label>
-                            <div class="input-box" style="display:flex;align-items:center;min-height:54px;">${escapeHTML(s.estado)}</div>
-                            <button class="btn-outline-blue" type="button" onclick="desarchivarSolicitud(${s.id_solicitud},'asesor')">Desarchivar</button>
-                            <button class="btn-delete-action" type="button" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'asesor')">Eliminar</button>
-                        </div>
-                    </article>`).join('')}</div>`;
+                cont.innerHTML=`<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Cliente / detalle</th><th>Plan</th><th>Estado</th><th>Fecha de archivo</th><th>Acciones</th></tr></thead><tbody>${data.map(s=>`<tr><td>${escapeHTML(s.nombre)}<br><small>${escapeHTML(s.correo)} · ${escapeHTML(s.telefono)}</small><details class="solicitud-detalle"><summary>Ver comentario y datos</summary><div class="solicitud-detalle-contenido"><p><strong>Comentario:</strong> ${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p><p><strong>Fecha de recepción:</strong> ${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p></div></details></td><td>${escapeHTML(s.nombre_plan)}</td><td>${escapeHTML(s.estado)}</td><td>${s.fecha_archivado?new Date(s.fecha_archivado).toLocaleString('es-CO'):'—'}</td><td><button class="btn-outline-blue" onclick="desarchivarSolicitud(${s.id_solicitud},'asesor')">Desarchivar</button> <button class="btn-delete-action" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'asesor')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
             } catch(e){cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`;}
         }
 
@@ -3281,29 +3257,7 @@
                 const res=await fetch(`${API_URL}/admin/solicitudes/archivadas`), data=await res.json();
                 if(!res.ok) throw new Error(data.error || 'No se pudo cargar el historial.');
                 if(!data.length){cont.innerHTML='<p style="color:var(--texto-gris)">Todavía no hay solicitudes archivadas.</p>';return;}
-                cont.innerHTML=`<div class="lista-solicitudes-admin">${data.map(s=>`
-                    <article class="item-plan-filas tarjeta-solicitud-asesor tarjeta-solicitud-admin">
-                        <div class="informacion-solicitud-asesor">
-                            <h3>${escapeHTML(s.nombre)}</h3>
-                            <p><strong>Plan:</strong> ${escapeHTML(s.plan)}</p>
-                            <p><strong>Asesor:</strong> ${escapeHTML(s.asesor)}</p>
-                            <p><strong>Correo:</strong> <a href="mailto:${escapeHTML(s.correo)}">${escapeHTML(s.correo)}</a></p>
-                            <p><strong>Teléfono:</strong> <a href="tel:${escapeHTML(s.telefono)}">${escapeHTML(s.telefono)}</a></p>
-                            <details class="solicitud-detalle"><summary>Ver detalle de la solicitud</summary>
-                                <div class="solicitud-detalle-contenido">
-                                    <p><strong>Comentario del cliente</strong><br>${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p>
-                                    <p><strong>Fecha de recepción</strong><br>${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p>
-                                    <p><strong>Fecha de archivo</strong><br>${s.fecha_archivado?new Date(s.fecha_archivado).toLocaleString('es-CO'):'—'}</p>
-                                </div>
-                            </details>
-                        </div>
-                        <div class="acciones-solicitud-asesor">
-                            <label class="texto-secundario">Estado</label>
-                            <div class="input-box" style="display:flex;align-items:center;min-height:54px;">${escapeHTML(s.estado)}</div>
-                            <button class="btn-outline-blue" type="button" onclick="desarchivarSolicitud(${s.id_solicitud},'admin')">Desarchivar</button>
-                            <button class="btn-delete-action" type="button" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'admin')">Eliminar</button>
-                        </div>
-                    </article>`).join('')}</div>`;
+                cont.innerHTML=`<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Cliente</th><th>Plan</th><th>Asesor</th><th>Estado</th><th>Fecha de archivo</th><th>Acciones</th></tr></thead><tbody>${data.map(s=>`<tr><td>${escapeHTML(s.nombre)}<br><small>${escapeHTML(s.correo)}</small><details class="solicitud-detalle"><summary>Ver detalle</summary><div class="solicitud-detalle-contenido"><p><strong>Comentario:</strong> ${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p><p><strong>Fecha de recepción:</strong> ${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p></div></details></td><td>${escapeHTML(s.plan)}</td><td>${escapeHTML(s.asesor)}</td><td>${escapeHTML(s.estado)}</td><td>${s.fecha_archivado?new Date(s.fecha_archivado).toLocaleString('es-CO'):'—'}</td><td><button class="btn-outline-blue" onclick="desarchivarSolicitud(${s.id_solicitud},'admin')">Desarchivar</button><br><button class="btn-delete-action" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'admin')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
             } catch(e){cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`;}
         }
 
