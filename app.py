@@ -20,7 +20,8 @@ from model.logic import (
     DatosViajero,
     PlanTuristico,
     GeneradorItinerarioIA,
-    RevisionPlan
+    RevisionPlan,
+    Usuario
 )
 from controller.planes_controller import PlanesController
 
@@ -37,7 +38,7 @@ app.secret_key = os.getenv(
 )
 
 app.config.update(
-    MAX_CONTENT_LENGTH=6 * 1024 * 1024,
+    MAX_CONTENT_LENGTH=42 * 1024 * 1024,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=(
@@ -91,6 +92,22 @@ def requiere_rol(rol):
             jsonify({"error": "No tienes permisos para esta operación."}),
             403
         )
+
+    # Revalida el estado de la cuenta para revocar sesiones ya abiertas.
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("SELECT COALESCE(activo, TRUE), COALESCE(eliminado, FALSE) FROM usuarios WHERE id_usuario=%s;", (usuario.get("id_usuario"),))
+        fila = cursor.fetchone()
+        if not fila or not fila[0] or fila[1]:
+            session.clear()
+            return None, (jsonify({"error": "Tu cuenta está desactivada o fue eliminada. Contacta al administrador."}), 401)
+    except Exception:
+        app.logger.exception("No fue posible validar el estado de la cuenta")
+        return None, (jsonify({"error": "No fue posible validar tus permisos. Inténtalo nuevamente."}), 503)
+    finally:
+        if cursor is not None:
+            PlanesController._cerrar_cursor(cursor)
 
     return usuario, None
 
@@ -210,6 +227,56 @@ def login():
         }), 500
 
 
+@app.route("/api/registro", methods=["POST"])
+def registrar_cliente():
+    datos = request.get_json(silent=True) or {}
+    nombre = datos.get("nombre")
+    correo = datos.get("correo")
+    contrasena = datos.get("contrasena")
+    acepta_datos = datos.get("acepta_datos") is True
+
+    if not all(isinstance(v, str) for v in (nombre, correo, contrasena)):
+        return jsonify({"error": "Completa todos los campos obligatorios."}), 400
+    nombre = nombre.strip()
+    correo = correo.strip().lower()
+    if len(nombre) < 3 or len(nombre) > 100:
+        return jsonify({"error": "El nombre debe tener entre 3 y 100 caracteres."}), 400
+    import re
+    if len(correo) > 100 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", correo):
+        return jsonify({"error": "Ingresa un correo electrónico válido."}), 400
+    if len(contrasena) < 8 or len(contrasena) > 128:
+        return jsonify({"error": "La contraseña debe tener entre 8 y 128 caracteres."}), 400
+    if not acepta_datos:
+        return jsonify({"error": "Debes aceptar el tratamiento de tus datos para crear la cuenta."}), 400
+
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("SELECT 1 FROM usuarios WHERE LOWER(correo)=LOWER(%s) LIMIT 1;", (correo,))
+        if cursor.fetchone():
+            return jsonify({"error": "Ya existe una cuenta con ese correo electrónico."}), 409
+        cursor.execute("""
+            INSERT INTO usuarios (nombre, correo, contrasena_cifrada, rol)
+            VALUES (%s, %s, %s, 'cliente')
+            ON CONFLICT (correo) DO NOTHING
+            RETURNING id_usuario, nombre, correo, rol;
+        """, (nombre, correo, Usuario.cifrar_contrasena(contrasena)))
+        fila = cursor.fetchone()
+        if not fila:
+            cursor.connection.rollback()
+            return jsonify({"error": "Ya existe una cuenta con ese correo electrónico."}), 409
+        cursor.connection.commit()
+        session.clear()
+        session["usuario"] = {"id_usuario": fila[0], "nombre": fila[1], "correo": fila[2], "rol": fila[3]}
+        return jsonify({"mensaje": "Cuenta creada correctamente.", "usuario": session["usuario"]}), 201
+    except Exception:
+        if cursor is not None: cursor.connection.rollback()
+        app.logger.exception("Error al registrar cliente")
+        return jsonify({"error": "No fue posible crear la cuenta. Inténtalo nuevamente."}), 500
+    finally:
+        if cursor is not None: PlanesController._cerrar_cursor(cursor)
+
+
 @app.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
@@ -249,6 +316,54 @@ def obtener_planes():
         return jsonify({
             "error": "Error al obtener los planes."
         }), 500
+
+
+@app.route("/api/planes/ofertas", methods=["GET"])
+def obtener_ofertas_publicas():
+    try:
+        return jsonify(PlanesController.obtener_ofertas_publicadas()), 200
+    except Exception:
+        app.logger.exception("Error al consultar ofertas públicas")
+        return jsonify({"error": "No fue posible cargar las ofertas."}), 500
+
+
+@app.route("/api/planes/buscar", methods=["GET"])
+def buscar_planes_publicos():
+    """Búsqueda pública con filtros; nunca expone borradores ni planes pendientes."""
+    try:
+        def numero_opcional(nombre, tipo):
+            valor = request.args.get(nombre, "").strip()
+            if not valor:
+                return None
+            try:
+                numero = tipo(valor)
+            except (TypeError, ValueError):
+                raise ValueError(f"El filtro {nombre} no es válido.")
+            if numero < 0:
+                raise ValueError(f"El filtro {nombre} no puede ser negativo.")
+            return numero
+
+        presupuesto_max = numero_opcional("presupuesto_max", float)
+        duracion_min = numero_opcional("duracion_min", int)
+        duracion_max = numero_opcional("duracion_max", int)
+        if duracion_min is not None and duracion_max is not None and duracion_min > duracion_max:
+            return jsonify({"error": "La duración mínima no puede superar la máxima."}), 400
+
+        planes = PlanesController.buscar_planes_publicos(
+            texto=request.args.get("q", "").strip() or None,
+            destino=request.args.get("destino", "").strip() or None,
+            pais=request.args.get("pais", "").strip() or None,
+            interes=request.args.get("interes", "").strip() or None,
+            presupuesto_max=presupuesto_max,
+            duracion_min=duracion_min,
+            duracion_max=duracion_max,
+        )
+        return jsonify(planes), 200
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        app.logger.exception("Error al buscar planes públicos")
+        return jsonify({"error": "No fue posible realizar la búsqueda."}), 500
 
 
 @app.route("/api/planes/<int:id_plan>", methods=["GET"])
@@ -301,6 +416,27 @@ def obtener_planes_asesor(id_asesor):
             "error": "Error al obtener los planes del asesor."
         }), 500
 
+@app.route("/api/asesor/planes/<int:id_plan>/volver-borrador", methods=["POST"])
+def volver_plan_a_borrador(id_plan):
+    """Retira un plan publicado del catálogo para que su asesor lo edite y reenvíe."""
+    usuario, error = requiere_rol("asesor")
+    if error:
+        return error
+    try:
+        plan = PlanesController.buscar_plan(id_plan)
+        if not plan:
+            return jsonify({"error": "Plan no encontrado."}), 404
+        if plan.id_asesor != usuario["id_usuario"]:
+            return jsonify({"error": "No puedes modificar un plan de otro asesor."}), 403
+        if plan.estado != "Publicado":
+            return jsonify({"error": "Solo puedes devolver a borrador un plan publicado."}), 409
+        PlanesController.actualizar_estado(id_plan, "Borrador")
+        return jsonify({"mensaje": "El plan volvió a borrador. Ya no está visible para los clientes y debe enviarse nuevamente a revisión."}), 200
+    except Exception:
+        app.logger.exception("Error al devolver el plan a borrador")
+        return jsonify({"error": "No fue posible devolver el plan a borrador."}), 500
+
+
 @app.route(
     "/api/asesor/planes/<int:id_plan>",
     methods=["GET"]
@@ -338,6 +474,66 @@ def obtener_borrador_asesor(id_plan):
 
         return jsonify({
             "error": "No fue posible recuperar el borrador."
+        }), 500
+
+@app.route(
+    "/api/asesor/planes/<int:id_plan>",
+    methods=["DELETE"]
+)
+def eliminar_borrador_asesor(id_plan):
+    usuario, error = requiere_rol("asesor")
+
+    if error:
+        return error
+
+    try:
+        plan = PlanesController.buscar_plan(id_plan)
+
+        if not plan:
+            return jsonify({
+                "error": "Plan no encontrado."
+            }), 404
+
+        if plan.id_asesor != usuario["id_usuario"]:
+            return jsonify({
+                "error": "No puedes eliminar un plan de otro asesor."
+            }), 403
+
+        if plan.estado not in {"Borrador", "Publicado"}:
+            return jsonify({
+                "error": "Solo puedes eliminar planes en borrador o publicados."
+            }), 409
+
+        eliminado = PlanesController.eliminar_plan(id_plan)
+
+        if not eliminado:
+            return jsonify({
+                "error": "No se pudo eliminar el plan."
+            }), 404
+
+        # Si la imagen era exclusiva del plan, limpiar el archivo local.
+        imagen_plan = plan.imagen_url
+        if (
+            imagen_plan
+            and imagen_plan.startswith("/static/uploads/destinos/")
+            and not PlanesController.imagen_referenciada(imagen_plan)
+        ):
+            eliminar_archivo_si_existe(
+                os.path.join(CARPETA_DESTINOS, os.path.basename(imagen_plan))
+            )
+
+        return jsonify({
+            "mensaje": "Plan eliminado correctamente."
+        }), 200
+
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
+
+    except Exception:
+        app.logger.exception("Error al eliminar el plan")
+
+        return jsonify({
+            "error": "No fue posible eliminar el plan."
         }), 500
 # ============================================================
 # CREAR PLAN Y GENERAR ITINERARIO
@@ -414,7 +610,9 @@ def generar_plan_ia():
         # Generar el itinerario.
         itinerario = GeneradorItinerarioIA.generar(
             destino,
-            datos_viajero
+            datos_viajero,
+            pais=pais,
+            continente=continente
         )
 
         if not itinerario.esta_completo(datos_viajero.duracion_dias):
@@ -613,7 +811,10 @@ def editar_informacion_plan(id_plan):
             id_plan=id_plan,
             incluye=datos.get("incluye"),
             no_incluye=datos.get("no_incluye"),
-            costo_estimado=datos.get("costo_estimado")
+            costo_estimado=datos.get("costo_estimado"),
+            descuento_porcentaje=datos.get("descuento_porcentaje", 0),
+            oferta_fecha_inicio=datos.get("oferta_fecha_inicio"),
+            oferta_fecha_fin=datos.get("oferta_fecha_fin")
         )
 
         return jsonify({
@@ -628,6 +829,187 @@ def editar_informacion_plan(id_plan):
 
         return jsonify({
             "error": "No fue posible guardar la información del plan."
+        }), 500
+
+
+# ============================================================
+# ACTUALIZAR IMAGEN DEL PLAN (ASESOR)
+# ============================================================
+
+@app.route(
+    "/api/planes/<int:id_plan>/imagen",
+    methods=["PUT"]
+)
+def actualizar_imagen_plan(id_plan):
+    usuario, error = requiere_rol("asesor")
+    if error:
+        return error
+
+    ruta_nueva = None
+    try:
+        plan = PlanesController.buscar_plan(id_plan)
+        if not plan:
+            return jsonify({"error": "Plan no encontrado."}), 404
+        if plan.id_asesor != usuario["id_usuario"]:
+            return jsonify({
+                "error": "No puedes modificar un plan de otro asesor."
+            }), 403
+        if plan.estado != "Borrador":
+            return jsonify({
+                "error": "Solo puedes cambiar la imagen de un borrador."
+            }), 409
+
+        imagen = request.files.get("imagen")
+        if not imagen or not imagen.filename:
+            return jsonify({
+                "error": "Selecciona una imagen para continuar."
+            }), 400
+
+        contenido, extension = validar_imagen_subida(imagen)
+        nombre_archivo = f"{uuid.uuid4().hex}.{extension}"
+        ruta_nueva = os.path.join(CARPETA_DESTINOS, nombre_archivo)
+        with open(ruta_nueva, "wb") as archivo:
+            archivo.write(contenido)
+
+        nueva_url = f"/static/uploads/destinos/{nombre_archivo}"
+        imagen_anterior = PlanesController.actualizar_imagen_plan(
+            id_plan, nueva_url
+        )
+
+        # Eliminar la anterior solo si era un archivo local y ya no está referenciada.
+        if (
+            imagen_anterior
+            and imagen_anterior.startswith("/static/uploads/destinos/")
+            and imagen_anterior != nueva_url
+            and not PlanesController.imagen_referenciada(imagen_anterior)
+        ):
+            nombre_anterior = os.path.basename(imagen_anterior)
+            eliminar_archivo_si_existe(
+                os.path.join(CARPETA_DESTINOS, nombre_anterior)
+            )
+
+        return jsonify({
+            "mensaje": "Imagen del plan actualizada correctamente.",
+            "imagen_url": nueva_url
+        }), 200
+
+    except ValueError as error:
+        eliminar_archivo_si_existe(ruta_nueva)
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        eliminar_archivo_si_existe(ruta_nueva)
+        app.logger.exception("Error al actualizar la imagen del plan")
+        return jsonify({
+            "error": "No fue posible actualizar la imagen del plan."
+        }), 500
+
+
+# ============================================================
+# GALERÍA DE IMÁGENES DEL PLAN (ASESOR)
+# ============================================================
+
+@app.route("/api/planes/<int:id_plan>/imagenes", methods=["POST"])
+def agregar_imagenes_galeria(id_plan):
+    usuario, error = requiere_rol("asesor")
+    if error:
+        return error
+    rutas_guardadas = []
+    try:
+        plan = PlanesController.buscar_plan(id_plan)
+        if not plan:
+            return jsonify({"error": "Plan no encontrado."}), 404
+        if plan.id_asesor != usuario["id_usuario"]:
+            return jsonify({"error": "No puedes modificar un plan de otro asesor."}), 403
+        if plan.estado != "Borrador":
+            return jsonify({"error": "Solo puedes agregar fotos a un borrador."}), 409
+        archivos = request.files.getlist("imagenes")
+        if not archivos or len(archivos) > 8:
+            return jsonify({"error": "Selecciona entre 1 y 8 fotografías por carga."}), 400
+        urls = []
+        for imagen in archivos:
+            if not imagen or not imagen.filename:
+                continue
+            contenido, extension = validar_imagen_subida(imagen)
+            nombre = f"{uuid.uuid4().hex}.{extension}"
+            ruta = os.path.join(CARPETA_DESTINOS, nombre)
+            with open(ruta, "wb") as archivo:
+                archivo.write(contenido)
+            rutas_guardadas.append(ruta)
+            urls.append(f"/static/uploads/destinos/{nombre}")
+        if not urls:
+            return jsonify({"error": "No se recibieron imágenes válidas."}), 400
+        PlanesController.agregar_imagenes_plan(id_plan, urls)
+        return jsonify({"mensaje": "Fotografías agregadas a la galería.", "imagenes": urls}), 201
+    except ValueError as error:
+        for ruta in rutas_guardadas:
+            eliminar_archivo_si_existe(ruta)
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        for ruta in rutas_guardadas:
+            eliminar_archivo_si_existe(ruta)
+        app.logger.exception("Error al agregar fotografías a la galería")
+        return jsonify({"error": "No fue posible guardar las fotografías."}), 500
+
+
+# ============================================================
+# SOLICITUD DE CONTACTO DEL CLIENTE (SIN CUENTA)
+# ============================================================
+
+@app.route(
+    "/api/planes/<int:id_plan>/solicitudes",
+    methods=["POST"]
+)
+def crear_solicitud_cliente(id_plan):
+    try:
+        datos = request.get_json(silent=True) or {}
+        nombre = str(datos.get("nombre", "")).strip()
+        correo = str(datos.get("correo", "")).strip().lower()
+        telefono = str(datos.get("telefono", "")).strip()
+        mensaje = str(datos.get("mensaje", "")).strip()
+
+        if len(nombre) < 2 or len(nombre) > 100:
+            raise ValueError("Ingresa un nombre válido (2 a 100 caracteres).")
+        if len(correo) > 150 or "@" not in correo or "." not in correo.split("@")[-1]:
+            raise ValueError("Ingresa un correo electrónico válido.")
+        if len(telefono) < 7 or len(telefono) > 30:
+            raise ValueError("Ingresa un teléfono válido.")
+        if len(mensaje) > 1000:
+            raise ValueError("El mensaje no puede superar los 1000 caracteres.")
+
+        id_solicitud = PlanesController.crear_solicitud_contacto(
+            id_plan, nombre, correo, telefono, mensaje
+        )
+        return jsonify({
+            "mensaje": (
+                "¡Solicitud enviada! Un asesor se pondrá en contacto contigo "
+                "pronto para brindarte más información."
+            ),
+            "id_solicitud": id_solicitud
+        }), 201
+
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        app.logger.exception("Error al registrar solicitud del cliente")
+        return jsonify({
+            "error": "No fue posible enviar tu solicitud. Inténtalo nuevamente."
+        }), 500
+
+
+@app.route("/api/asesor/solicitudes", methods=["GET"])
+def obtener_solicitudes_asesor():
+    usuario, error = requiere_rol("asesor")
+    if error:
+        return error
+    try:
+        solicitudes = PlanesController.obtener_solicitudes_asesor(
+            usuario["id_usuario"]
+        )
+        return jsonify(solicitudes), 200
+    except Exception:
+        app.logger.exception("Error al consultar solicitudes del asesor")
+        return jsonify({
+            "error": "No fue posible cargar las solicitudes."
         }), 500
 
 
@@ -773,6 +1155,453 @@ def estadisticas_admin():
         return jsonify({
             "error": "No fue posible consultar las estadísticas."
         }), 500
+
+
+@app.route("/api/admin/usuarios", methods=["GET"])
+def listar_usuarios_admin():
+    admin, error = requiere_rol("administrador")
+    if error: return error
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        # La propia cuenta no se muestra: no puede gestionarse ni eliminarse desde esta pantalla.
+        cursor.execute("SELECT id_usuario, nombre, correo, rol, COALESCE(activo, TRUE) FROM usuarios WHERE id_usuario <> %s AND COALESCE(eliminado, FALSE)=FALSE ORDER BY rol, nombre;", (admin.get("id_usuario"),))
+        return jsonify([{"id_usuario": r[0], "nombre": r[1], "correo": r[2], "rol": r[3], "activo": r[4]} for r in cursor.fetchall()]), 200
+    except Exception:
+        app.logger.exception("Error al listar usuarios")
+        return jsonify({"error": "No fue posible consultar los usuarios."}), 500
+    finally:
+        if cursor is not None: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/usuarios/eliminados", methods=["GET"])
+def listar_usuarios_eliminados_admin():
+    _, error = requiere_rol("administrador")
+    if error: return error
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("""SELECT id_usuario, nombre, correo, rol, fecha_eliminacion
+                          FROM usuarios WHERE COALESCE(eliminado, FALSE)=TRUE
+                          ORDER BY fecha_eliminacion DESC NULLS LAST, nombre;""")
+        return jsonify([{"id_usuario":r[0],"nombre":r[1],"correo":r[2],"rol":r[3],"fecha_eliminacion":r[4].isoformat() if r[4] else None} for r in cursor.fetchall()]), 200
+    except Exception:
+        app.logger.exception("Error al consultar historial de cuentas eliminadas")
+        return jsonify({"error":"No fue posible consultar el historial de cuentas eliminadas."}), 500
+    finally:
+        if cursor is not None: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/usuarios", methods=["POST"])
+def crear_usuario_admin():
+    _, error = requiere_rol("administrador")
+    if error: return error
+    datos = request.get_json(silent=True) or {}
+    nombre = datos.get("nombre")
+    correo = datos.get("correo")
+    contrasena = datos.get("contrasena")
+    rol = datos.get("rol")
+    if not all(isinstance(v, str) for v in (nombre, correo, contrasena, rol)):
+        return jsonify({"error": "Completa nombre, correo, contraseña y rol."}), 400
+    nombre, correo, rol = nombre.strip(), correo.strip().lower(), rol.strip().lower()
+    if len(nombre) < 3 or len(nombre) > 100:
+        return jsonify({"error": "El nombre debe tener entre 3 y 100 caracteres."}), 400
+    import re
+    if len(correo) > 100 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", correo):
+        return jsonify({"error": "Ingresa un correo válido."}), 400
+    if len(contrasena) < 8 or len(contrasena) > 128:
+        return jsonify({"error": "La contraseña debe tener entre 8 y 128 caracteres."}), 400
+    if rol not in ("asesor", "administrador"):
+        return jsonify({"error": "Solo puedes crear cuentas de asesor o administrador."}), 400
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("""INSERT INTO usuarios (nombre, correo, contrasena_cifrada, rol, activo)
+                          VALUES (%s, %s, %s, %s, TRUE)
+                          ON CONFLICT (correo) DO NOTHING
+                          RETURNING id_usuario, nombre, correo, rol, activo;""",
+                       (nombre, correo, Usuario.cifrar_contrasena(contrasena), rol))
+        fila = cursor.fetchone()
+        if not fila:
+            cursor.connection.rollback()
+            return jsonify({"error": "Ya existe una cuenta con ese correo electrónico."}), 409
+        cursor.connection.commit()
+        return jsonify({"mensaje": "Usuario creado correctamente.", "usuario": {"id_usuario":fila[0],"nombre":fila[1],"correo":fila[2],"rol":fila[3],"activo":fila[4]}}), 201
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error al crear usuario administrativo")
+        return jsonify({"error": "No fue posible crear el usuario."}), 500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/usuarios/<int:id_usuario>/estado", methods=["PATCH"])
+def cambiar_estado_usuario_admin(id_usuario):
+    admin, error = requiere_rol("administrador")
+    if error: return error
+    datos = request.get_json(silent=True) or {}
+    activo = datos.get("activo")
+    if not isinstance(activo, bool):
+        return jsonify({"error": "Indica si la cuenta debe estar activa."}), 400
+    if id_usuario == admin["id_usuario"] and not activo:
+        return jsonify({"error": "No puedes desactivar tu propia cuenta."}), 400
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("LOCK TABLE usuarios IN SHARE ROW EXCLUSIVE MODE;")
+        cursor.execute("SELECT rol, activo, COALESCE(eliminado,FALSE) FROM usuarios WHERE id_usuario=%s FOR UPDATE;", (id_usuario,))
+        usuario = cursor.fetchone()
+        if not usuario or usuario[2]: return jsonify({"error": "Usuario no encontrado o eliminado."}), 404
+        if usuario[0] == "administrador" and not activo and usuario[1]:
+            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE rol='administrador' AND COALESCE(activo,TRUE)=TRUE AND COALESCE(eliminado,FALSE)=FALSE;")
+            if cursor.fetchone()[0] <= 1:
+                cursor.connection.rollback()
+                return jsonify({"error": "No puedes desactivar al último administrador activo."}), 409
+        cursor.execute("UPDATE usuarios SET activo=%s WHERE id_usuario=%s;", (activo,id_usuario))
+        cursor.connection.commit()
+        return jsonify({"mensaje": "Estado de la cuenta actualizado."}), 200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error al cambiar estado de usuario")
+        return jsonify({"error": "No fue posible actualizar la cuenta."}), 500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/usuarios/<int:id_usuario>", methods=["DELETE"])
+def eliminar_usuario_admin(id_usuario):
+    admin, error = requiere_rol("administrador")
+    if error: return error
+    if id_usuario == admin["id_usuario"]:
+        return jsonify({"error": "No puedes eliminar tu propia cuenta."}), 400
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("LOCK TABLE usuarios IN SHARE ROW EXCLUSIVE MODE;")
+        cursor.execute("SELECT rol, activo, COALESCE(eliminado,FALSE) FROM usuarios WHERE id_usuario=%s FOR UPDATE;", (id_usuario,))
+        usuario = cursor.fetchone()
+        if not usuario or usuario[2]: return jsonify({"error": "Usuario no encontrado o ya eliminado."}), 404
+        if usuario[0] == "administrador" and usuario[1]:
+            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE rol='administrador' AND COALESCE(activo,TRUE)=TRUE AND COALESCE(eliminado,FALSE)=FALSE;")
+            if cursor.fetchone()[0] <= 1:
+                cursor.connection.rollback()
+                return jsonify({"error": "No puedes eliminar al último administrador activo."}), 409
+        # Anonimización irreversible: conserva la fila técnica por integridad referencial,
+        # pero elimina los datos personales y bloquea el acceso.
+        cursor.execute("""
+            UPDATE usuarios
+               SET activo=FALSE, eliminado=TRUE,
+                   fecha_eliminacion=CURRENT_TIMESTAMP,
+                   nombre='Usuario eliminado',
+                   correo='eliminado+' || id_usuario::TEXT || '@rumbalia.invalid',
+                   contrasena_cifrada='CUENTA_ELIMINADA'
+             WHERE id_usuario=%s;
+        """, (id_usuario,))
+        cursor.connection.commit()
+        return jsonify({"mensaje": "Cuenta eliminada y datos personales anonimizados. Se conservaron únicamente las relaciones necesarias para el historial."}), 200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error al eliminar usuario")
+        return jsonify({"error": "No fue posible eliminar la cuenta."}), 500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/reportes", methods=["GET"])
+def reportes_admin():
+    _, error = requiere_rol("administrador")
+    if error: return error
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("""
+            SELECT
+              COUNT(*) FILTER (WHERE estado='Publicado'),
+              COUNT(*) FILTER (WHERE estado='Pendiente'),
+              COUNT(*) FILTER (WHERE estado='Borrador'),
+              (SELECT COUNT(*) FROM usuarios WHERE rol='asesor' AND COALESCE(eliminado,FALSE)=FALSE),
+              (SELECT COUNT(*) FROM usuarios WHERE rol='cliente' AND COALESCE(eliminado,FALSE)=FALSE),
+              (SELECT COUNT(*) FROM solicitudes_contacto),
+              COUNT(*) FILTER (WHERE estado='Publicado' AND COALESCE(descuento_porcentaje,0)>0 AND oferta_fecha_inicio<=CURRENT_DATE AND oferta_fecha_fin>=CURRENT_DATE)
+            FROM planes;
+        """)
+        r = cursor.fetchone()
+        return jsonify({"planes_publicados":r[0],"planes_pendientes":r[1],"planes_borrador":r[2],"asesores":r[3],"clientes":r[4],"solicitudes":r[5],"ofertas_vigentes":r[6]}), 200
+    except Exception:
+        app.logger.exception("Error al generar reportes administrativos")
+        return jsonify({"error": "No fue posible generar los reportes."}), 500
+    finally:
+        if cursor is not None: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/asesor/reportes", methods=["GET"])
+def reportes_asesor():
+    usuario, error = requiere_rol("asesor")
+    if error: return error
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        cursor.execute("""
+            SELECT COUNT(*), COUNT(*) FILTER (WHERE estado='Publicado'),
+                   COUNT(*) FILTER (WHERE estado='Pendiente'), COUNT(*) FILTER (WHERE estado='Borrador'),
+                   (SELECT COUNT(*) FROM solicitudes_contacto s JOIN planes p ON p.id_plan=s.id_plan WHERE p.id_asesor=%s),
+                   (SELECT COUNT(*) FROM solicitudes_contacto s JOIN planes p ON p.id_plan=s.id_plan WHERE p.id_asesor=%s AND s.estado='Nueva')
+            FROM planes WHERE id_asesor=%s;
+        """, (usuario["id_usuario"], usuario["id_usuario"], usuario["id_usuario"]))
+        r=cursor.fetchone()
+        return jsonify({"planes_total":r[0],"publicados":r[1],"pendientes":r[2],"borradores":r[3],"solicitudes":r[4],"solicitudes_nuevas":r[5]}),200
+    except Exception:
+        app.logger.exception("Error al generar reportes del asesor")
+        return jsonify({"error":"No fue posible generar tus reportes."}),500
+    finally:
+        if cursor is not None: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/asesor/solicitudes/<int:id_solicitud>/estado", methods=["PATCH"])
+def actualizar_estado_solicitud_asesor(id_solicitud):
+    usuario, error = requiere_rol("asesor")
+    if error: return error
+    datos=request.get_json(silent=True) or {}
+    estado=datos.get("estado")
+    if estado not in {"Nueva", "En gestión", "Atendida"}:
+        return jsonify({"error":"Estado de solicitud no válido."}),400
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        cursor.execute("""UPDATE solicitudes_contacto s
+                         SET estado=%s, fecha_actualizacion=CURRENT_TIMESTAMP,
+                             actualizado_por=%s
+                         FROM planes p
+                         WHERE s.id_solicitud=%s AND p.id_plan=s.id_plan
+                           AND p.id_asesor=%s AND COALESCE(s.archivada,FALSE)=FALSE AND COALESCE(s.eliminada,FALSE)=FALSE
+                         RETURNING s.id_solicitud;""",
+                       (estado, usuario["id_usuario"], id_solicitud, usuario["id_usuario"]))
+        if not cursor.fetchone():
+            cursor.connection.rollback(); return jsonify({"error":"No se encontró la solicitud activa."}),404
+        cursor.connection.commit(); return jsonify({"mensaje":"Estado actualizado."}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error actualizando solicitud")
+        return jsonify({"error":"No fue posible actualizar la solicitud."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/asesor/solicitudes/<int:id_solicitud>/archivar", methods=["PATCH"])
+def archivar_solicitud_asesor(id_solicitud):
+    usuario, error = requiere_rol("asesor")
+    if error: return error
+    return _archivar_solicitud(id_solicitud, usuario)
+
+
+def _archivar_solicitud(id_solicitud, usuario):
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        filtro_asesor = "AND p.id_asesor=%s" if usuario.get("rol") == "asesor" else ""
+        params=[usuario["id_usuario"], id_solicitud]
+        if filtro_asesor: params.append(usuario["id_usuario"])
+        cursor.execute(f"""UPDATE solicitudes_contacto s
+            SET archivada=TRUE, fecha_archivado=CURRENT_TIMESTAMP,
+                archivada_por=%s, fecha_actualizacion=CURRENT_TIMESTAMP,
+                actualizado_por=%s
+            FROM planes p
+            WHERE s.id_solicitud=%s AND p.id_plan=s.id_plan
+              AND COALESCE(s.archivada,FALSE)=FALSE AND COALESCE(s.eliminada,FALSE)=FALSE {filtro_asesor}
+            RETURNING s.id_solicitud;""", (usuario["id_usuario"], usuario["id_usuario"], id_solicitud, *([usuario["id_usuario"]] if filtro_asesor else [])))
+        if not cursor.fetchone():
+            cursor.connection.rollback(); return jsonify({"error":"No se encontró la solicitud activa o no tienes permisos."}),404
+        cursor.connection.commit(); return jsonify({"mensaje":"Solicitud archivada."}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error archivando solicitud")
+        return jsonify({"error":"No fue posible archivar la solicitud."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/solicitudes/<int:id_solicitud>/estado", methods=["PATCH"])
+def actualizar_estado_solicitud_admin(id_solicitud):
+    usuario, error=requiere_rol("administrador")
+    if error: return error
+    estado=(request.get_json(silent=True) or {}).get("estado")
+    if estado not in {"Nueva", "En gestión", "Atendida"}:
+        return jsonify({"error":"Estado de solicitud no válido."}),400
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        cursor.execute("""UPDATE solicitudes_contacto SET estado=%s,
+            fecha_actualizacion=CURRENT_TIMESTAMP, actualizado_por=%s
+            WHERE id_solicitud=%s AND COALESCE(archivada,FALSE)=FALSE AND COALESCE(eliminada,FALSE)=FALSE
+            RETURNING id_solicitud;""",(estado,usuario["id_usuario"],id_solicitud))
+        if not cursor.fetchone(): cursor.connection.rollback(); return jsonify({"error":"No se encontró la solicitud activa."}),404
+        cursor.connection.commit(); return jsonify({"mensaje":"Estado actualizado."}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error actualizando solicitud administrativa")
+        return jsonify({"error":"No fue posible actualizar la solicitud."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/solicitudes/<int:id_solicitud>/archivar", methods=["PATCH"])
+def archivar_solicitud_admin(id_solicitud):
+    usuario, error=requiere_rol("administrador")
+    if error: return error
+    return _archivar_solicitud(id_solicitud, usuario)
+
+
+def _desarchivar_solicitud(id_solicitud, usuario):
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        es_asesor = usuario.get("rol") == "asesor"
+        filtro_asesor = "AND p.id_asesor=%s" if es_asesor else ""
+        params = [usuario["id_usuario"], id_solicitud]
+        if es_asesor:
+            params.append(usuario["id_usuario"])
+        cursor.execute(f"""
+            UPDATE solicitudes_contacto s
+               SET archivada=FALSE, fecha_archivado=NULL,
+                   archivada_por=NULL, fecha_actualizacion=CURRENT_TIMESTAMP,
+                   actualizado_por=%s
+              FROM planes p
+             WHERE s.id_solicitud=%s AND p.id_plan=s.id_plan
+               AND COALESCE(s.archivada,FALSE)=TRUE
+               AND COALESCE(s.eliminada,FALSE)=FALSE {filtro_asesor}
+         RETURNING s.id_solicitud;
+        """, tuple(params))
+        if not cursor.fetchone():
+            cursor.connection.rollback()
+            return jsonify({"error":"No se encontró la solicitud archivada o no tienes permisos."}),404
+        cursor.connection.commit()
+        return jsonify({"mensaje":"Solicitud restaurada a la bandeja principal."}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error desarchivando solicitud")
+        return jsonify({"error":"No fue posible restaurar la solicitud."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/asesor/solicitudes/<int:id_solicitud>/desarchivar", methods=["PATCH"])
+def desarchivar_solicitud_asesor(id_solicitud):
+    usuario, error = requiere_rol("asesor")
+    if error: return error
+    return _desarchivar_solicitud(id_solicitud, usuario)
+
+
+@app.route("/api/admin/solicitudes/<int:id_solicitud>/desarchivar", methods=["PATCH"])
+def desarchivar_solicitud_admin(id_solicitud):
+    usuario, error = requiere_rol("administrador")
+    if error: return error
+    return _desarchivar_solicitud(id_solicitud, usuario)
+
+
+def _eliminar_solicitud_definitivamente(id_solicitud, usuario):
+    """Eliminación física de una solicitud; solo el rol autorizado puede ejecutarla."""
+    cursor = None
+    try:
+        cursor = PlanesController.obtener_cursor()
+        es_asesor = usuario.get("rol") == "asesor"
+        filtro_asesor = "AND p.id_asesor=%s" if es_asesor else ""
+        params = [id_solicitud]
+        if es_asesor:
+            params.append(usuario["id_usuario"])
+        cursor.execute(f"""
+            DELETE FROM solicitudes_contacto s
+             USING planes p
+             WHERE s.id_solicitud=%s AND p.id_plan=s.id_plan
+               AND COALESCE(s.eliminada,FALSE)=FALSE {filtro_asesor}
+         RETURNING s.id_solicitud;
+        """, tuple(params))
+        if not cursor.fetchone():
+            cursor.connection.rollback()
+            return jsonify({"error":"No se encontró la solicitud o no tienes permisos."}),404
+        cursor.connection.commit()
+        return jsonify({"mensaje":"Solicitud eliminada definitivamente."}),200
+    except Exception:
+        if cursor: cursor.connection.rollback()
+        app.logger.exception("Error eliminando definitivamente solicitud")
+        return jsonify({"error":"No fue posible eliminar la solicitud."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/asesor/solicitudes/<int:id_solicitud>", methods=["DELETE"])
+def eliminar_solicitud_asesor(id_solicitud):
+    usuario, error = requiere_rol("asesor")
+    if error: return error
+    return _eliminar_solicitud_definitivamente(id_solicitud, usuario)
+
+
+@app.route("/api/admin/solicitudes/<int:id_solicitud>", methods=["DELETE"])
+def eliminar_solicitud_admin(id_solicitud):
+    usuario, error = requiere_rol("administrador")
+    if error: return error
+    return _eliminar_solicitud_definitivamente(id_solicitud, usuario)
+
+
+@app.route("/api/asesor/solicitudes/archivadas", methods=["GET"])
+def solicitudes_asesor_archivadas():
+    usuario, error=requiere_rol("asesor")
+    if error: return error
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        cursor.execute("""SELECT s.id_solicitud,s.nombre,s.correo,s.telefono,s.mensaje,s.estado,s.fecha_creacion,
+            s.fecha_archivado,p.nombre FROM solicitudes_contacto s
+            JOIN planes p ON p.id_plan=s.id_plan
+            WHERE p.id_asesor=%s AND COALESCE(s.archivada,FALSE)=TRUE AND COALESCE(s.eliminada,FALSE)=FALSE
+            ORDER BY s.fecha_archivado DESC;""",(usuario["id_usuario"],))
+        return jsonify([{"id_solicitud":r[0],"nombre":r[1],"correo":r[2],"telefono":r[3],"mensaje":r[4] or "","estado":r[5],"fecha_creacion":r[6].isoformat(),"fecha_archivado":r[7].isoformat() if r[7] else None,"nombre_plan":r[8]} for r in cursor.fetchall()]),200
+    except Exception:
+        app.logger.exception("Error consultando solicitudes archivadas del asesor")
+        return jsonify({"error":"No fue posible consultar las solicitudes archivadas."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/solicitudes", methods=["GET"])
+def solicitudes_admin():
+    _, error=requiere_rol("administrador")
+    if error: return error
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        cursor.execute("""SELECT s.id_solicitud,s.nombre,s.correo,s.telefono,s.mensaje,s.estado,s.fecha_creacion,
+                         p.nombre,u.nombre,s.fecha_actualizacion,ua.nombre
+                         FROM solicitudes_contacto s JOIN planes p ON p.id_plan=s.id_plan
+                         JOIN usuarios u ON u.id_usuario=p.id_asesor
+                         LEFT JOIN usuarios ua ON ua.id_usuario=s.actualizado_por
+                         WHERE COALESCE(s.archivada,FALSE)=FALSE AND COALESCE(s.eliminada,FALSE)=FALSE
+                         ORDER BY s.fecha_creacion DESC;""")
+        return jsonify([{"id_solicitud":r[0],"nombre":r[1],"correo":r[2],"telefono":r[3],"mensaje":r[4] or "","estado":r[5],"fecha_creacion":r[6].isoformat(),"plan":r[7],"asesor":r[8],"fecha_actualizacion":r[9].isoformat() if r[9] else None,"actualizado_por":r[10]} for r in cursor.fetchall()]),200
+    except Exception:
+        app.logger.exception("Error consultando solicitudes administrativas")
+        return jsonify({"error":"No fue posible consultar las solicitudes."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
+
+
+@app.route("/api/admin/solicitudes/archivadas", methods=["GET"])
+def solicitudes_admin_archivadas():
+    _, error=requiere_rol("administrador")
+    if error: return error
+    cursor=None
+    try:
+        cursor=PlanesController.obtener_cursor()
+        cursor.execute("""SELECT s.id_solicitud,s.nombre,s.correo,s.telefono,s.mensaje,s.estado,
+            s.fecha_creacion,s.fecha_archivado,p.nombre,u.nombre
+            FROM solicitudes_contacto s JOIN planes p ON p.id_plan=s.id_plan
+            JOIN usuarios u ON u.id_usuario=p.id_asesor
+            WHERE COALESCE(s.archivada,FALSE)=TRUE AND COALESCE(s.eliminada,FALSE)=FALSE ORDER BY s.fecha_archivado DESC;""")
+        return jsonify([{"id_solicitud":r[0],"nombre":r[1],"correo":r[2],"telefono":r[3],"mensaje":r[4] or "","estado":r[5],"fecha_creacion":r[6].isoformat(),"fecha_archivado":r[7].isoformat() if r[7] else None,"plan":r[8],"asesor":r[9]} for r in cursor.fetchall()]),200
+    except Exception:
+        app.logger.exception("Error consultando solicitudes archivadas")
+        return jsonify({"error":"No fue posible consultar las solicitudes archivadas."}),500
+    finally:
+        if cursor: PlanesController._cerrar_cursor(cursor)
 
 
 # ============================================================

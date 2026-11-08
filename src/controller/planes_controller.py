@@ -1,5 +1,7 @@
 import os
 import sys
+import unicodedata
+from datetime import date
 from pathlib import Path
 
 # Raíz del proyecto: carpeta Turismo/
@@ -106,7 +108,9 @@ class PlanesController:
                 SELECT id_usuario, nombre, correo,
                        contrasena_cifrada, rol
                 FROM usuarios
-                WHERE LOWER(correo) = LOWER(%s);
+                WHERE LOWER(correo) = LOWER(%s)
+                  AND COALESCE(activo, TRUE) = TRUE
+                  AND COALESCE(eliminado, FALSE) = FALSE;
                 """,
                 (correo.strip(),)
             )
@@ -151,7 +155,7 @@ class PlanesController:
                     p.estado,
                     p.incluye,
                     p.no_incluye,
-                    d.imagen_url
+                    COALESCE(p.imagen_url, d.imagen_url)
                 FROM planes p
                 JOIN destinos d ON p.id_destino = d.id_destino
                 WHERE p.id_plan = %s;
@@ -204,6 +208,32 @@ class PlanesController:
                         fila_dia[2]
                     )
 
+            cursor.execute(
+                "SELECT imagen_url FROM imagenes_plan WHERE id_plan = %s ORDER BY id_imagen ASC;",
+                (id_plan,)
+            )
+            imagenes_plan = [r[0] for r in cursor.fetchall()]
+
+            # Recuperar la última decisión administrativa para que el asesor
+            # conozca el motivo del rechazo al volver a editar el borrador.
+            cursor.execute(
+                """
+                SELECT decision, motivo
+                FROM revisiones
+                WHERE id_plan = %s
+                ORDER BY fecha DESC, id_revision DESC
+                LIMIT 1;
+                """,
+                (id_plan,)
+            )
+            ultima_revision = cursor.fetchone()
+            decision_revision = ultima_revision[0] if ultima_revision else None
+            motivo_rechazo = (
+                (ultima_revision[1] or "")
+                if ultima_revision and ultima_revision[0] == "Rechazado"
+                else ""
+            )
+
             return PlanTuristico(
                 id_plan=fila[0],
                 nombre=fila[1],
@@ -215,7 +245,10 @@ class PlanesController:
                 itinerario=itinerario,
                 incluye=fila[10] or "",
                 no_incluye=fila[11] or "",
-                imagen_url=fila[12]
+                imagen_url=fila[12],
+                imagenes=imagenes_plan,
+                decision_revision=decision_revision,
+                motivo_rechazo=motivo_rechazo
             )
 
         finally:
@@ -235,11 +268,13 @@ class PlanesController:
                     p.id_plan,
                     p.nombre,
                     d.nombre,
+                    d.pais,
                     d.continente,
-                    d.imagen_url,
+                    COALESCE(p.imagen_url, d.imagen_url),
                     p.costo_estimado,
                     p.duracion_dias,
-                    p.estado
+                    p.estado,
+                    p.intereses
                 FROM planes p
                 JOIN destinos d ON p.id_destino = d.id_destino
                 WHERE p.estado = 'Publicado'
@@ -260,15 +295,121 @@ class PlanesController:
                     "id_plan": fila[0],
                     "nombre": fila[1],
                     "destino": fila[2],
-                    "continente": fila[3],
-                    "imagen_url": fila[4],
-                    "costo_estimado": float(fila[5] or 0),
-                    "duracion_dias": fila[6],
-                    "estado": fila[7]
+                    "pais": fila[3],
+                    "continente": fila[4],
+                    "imagen_url": fila[5],
+                    "costo_estimado": float(fila[6] or 0),
+                    "duracion_dias": fila[7],
+                    "estado": fila[8],
+                    "intereses": fila[9] or ""
                 }
                 for fila in cursor.fetchall()
             ]
 
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    @staticmethod
+    def buscar_planes_publicos(
+        texto: str = None,
+        destino: str = None,
+        pais: str = None,
+        interes: str = None,
+        presupuesto_max: float = None,
+        duracion_min: int = None,
+        duracion_max: int = None,
+    ) -> list:
+        """Busca únicamente planes publicados, filtrando destino y país por separado."""
+        cursor = PlanesController.obtener_cursor()
+        try:
+            # Normaliza también el texto recibido para que "medellin" y
+            # "Medellín" produzcan el mismo patrón de búsqueda.
+            def normalizar(valor):
+                if valor is None:
+                    return None
+                valor = unicodedata.normalize("NFD", str(valor))
+                valor = "".join(c for c in valor if unicodedata.category(c) != "Mn")
+                return valor.casefold().strip()
+
+            # translate() evita depender de la extensión PostgreSQL unaccent.
+            def campo_sin_tildes(campo):
+                return f"translate(lower(COALESCE({campo}, '')), 'áéíóúüñ', 'aeiouun')"
+
+            consulta = """
+                SELECT p.id_plan, p.nombre, d.nombre, d.pais, d.continente,
+                       COALESCE(p.imagen_url, d.imagen_url), p.costo_estimado,
+                       p.duracion_dias, p.intereses, p.tipo_viajero,
+                       COALESCE(p.descuento_porcentaje, 0), p.oferta_fecha_inicio, p.oferta_fecha_fin
+                FROM planes p
+                JOIN destinos d ON p.id_destino = d.id_destino
+                WHERE p.estado = 'Publicado'
+            """
+            parametros = []
+            if texto:
+                patron = f"%{normalizar(texto)}%"
+                consulta += f" AND ({campo_sin_tildes('d.nombre')} LIKE %s OR {campo_sin_tildes('d.pais')} LIKE %s OR {campo_sin_tildes('p.nombre')} LIKE %s)"
+                parametros.extend([patron, patron, patron])
+            if destino:
+                consulta += f" AND {campo_sin_tildes('d.nombre')} LIKE %s"
+                parametros.append(f"%{normalizar(destino)}%")
+            if pais:
+                consulta += f" AND {campo_sin_tildes('d.pais')} LIKE %s"
+                parametros.append(f"%{normalizar(pais)}%")
+            if interes:
+                consulta += f" AND ({campo_sin_tildes('p.intereses')} LIKE %s OR {campo_sin_tildes('p.tipo_viajero')} LIKE %s)"
+                patron = f"%{normalizar(interes)}%"
+                parametros.extend([patron, patron])
+            if presupuesto_max is not None:
+                consulta += " AND p.costo_estimado <= %s"
+                parametros.append(presupuesto_max)
+            if duracion_min is not None:
+                consulta += " AND p.duracion_dias >= %s"
+                parametros.append(duracion_min)
+            if duracion_max is not None:
+                consulta += " AND p.duracion_dias <= %s"
+                parametros.append(duracion_max)
+            consulta += " ORDER BY p.id_plan DESC"
+            cursor.execute(consulta, tuple(parametros))
+            return [
+                {
+                    "id_plan": f[0], "nombre": f[1], "destino": f[2],
+                    "pais": f[3], "continente": f[4], "imagen_url": f[5],
+                    "costo_estimado": float(f[6] or 0), "duracion_dias": f[7],
+                    "intereses": f[8] or "", "tipo_viajero": f[9] or "",
+                    "descuento_porcentaje": float(f[10] or 0),
+                    "oferta_fecha_inicio": f[11].isoformat() if f[11] else None,
+                    "oferta_fecha_fin": f[12].isoformat() if f[12] else None
+                }
+                for f in cursor.fetchall()
+            ]
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    @staticmethod
+    def obtener_ofertas_publicadas() -> list:
+        """Devuelve planes publicados con descuento vigente en la fecha actual."""
+        cursor = PlanesController.obtener_cursor()
+        try:
+            cursor.execute("""
+                SELECT p.id_plan, p.nombre, d.nombre, d.pais, d.continente,
+                       COALESCE(p.imagen_url, d.imagen_url), p.costo_estimado,
+                       p.duracion_dias, p.intereses, p.tipo_viajero,
+                       p.descuento_porcentaje, p.oferta_fecha_inicio, p.oferta_fecha_fin
+                FROM planes p
+                JOIN destinos d ON p.id_destino = d.id_destino
+                WHERE p.estado = 'Publicado'
+                  AND p.descuento_porcentaje > 0
+                  AND CURRENT_DATE BETWEEN p.oferta_fecha_inicio AND p.oferta_fecha_fin
+                ORDER BY p.oferta_fecha_fin ASC, p.id_plan DESC
+            """)
+            return [{
+                "id_plan": f[0], "nombre": f[1], "destino": f[2], "pais": f[3],
+                "continente": f[4], "imagen_url": f[5], "costo_estimado": float(f[6] or 0),
+                "duracion_dias": f[7], "intereses": f[8] or "", "tipo_viajero": f[9] or "",
+                "descuento_porcentaje": float(f[10] or 0),
+                "oferta_fecha_inicio": f[11].isoformat() if f[11] else None,
+                "oferta_fecha_fin": f[12].isoformat() if f[12] else None
+            } for f in cursor.fetchall()]
         finally:
             PlanesController._cerrar_cursor(cursor)
 
@@ -411,19 +552,18 @@ class PlanesController:
 
         if destino_existente:
             id_destino = destino_existente[0]
-            imagen_final = imagen_url or destino_existente[1]
-
+            # La fotografía nueva se guarda en planes.imagen_url.
+            # El destino conserva su imagen general como respaldo.
             cursor.execute(
                 """
                 UPDATE destinos
-                SET continente = %s,
-                    imagen_url = %s
+                SET continente = %s
                 WHERE id_destino = %s;
                 """,
-                (continente, imagen_final, id_destino)
+                (continente, id_destino)
             )
 
-            return id_destino, imagen_final
+            return id_destino, destino_existente[1]
 
         cursor.execute(
             """
@@ -469,9 +609,9 @@ class PlanesController:
                     duracion_dias, presupuesto,
                     tipo_viajero, intereses,
                     costo_estimado, estado,
-                    incluye, no_incluye
+                    incluye, no_incluye, imagen_url
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id_plan;
                 """,
                 (
@@ -485,7 +625,8 @@ class PlanesController:
                     plan.costo_estimado,
                     plan.estado,
                     plan.incluye,
-                    plan.no_incluye
+                    plan.no_incluye,
+                    plan.imagen_url
                 )
             )
 
@@ -642,7 +783,10 @@ class PlanesController:
         id_plan,
         incluye,
         no_incluye,
-        costo_estimado
+        costo_estimado,
+        descuento_porcentaje=0,
+        oferta_fecha_inicio=None,
+        oferta_fecha_fin=None
     ):
         incluye = str(incluye or "").strip()
         no_incluye = str(no_incluye or "").strip()
@@ -661,6 +805,28 @@ class PlanesController:
         if costo < 0:
             raise ValueError("El costo estimado no puede ser negativo.")
 
+        try:
+            descuento = float(descuento_porcentaje or 0)
+        except (TypeError, ValueError):
+            raise ValueError("El descuento debe ser numérico.")
+        if descuento < 0 or descuento > 90:
+            raise ValueError("El descuento debe estar entre 0 y 90%.")
+        if descuento > 0:
+            if not oferta_fecha_inicio or not oferta_fecha_fin:
+                raise ValueError("Indica las fechas de inicio y fin de la oferta.")
+            try:
+                fecha_inicio = date.fromisoformat(str(oferta_fecha_inicio))
+                fecha_fin = date.fromisoformat(str(oferta_fecha_fin))
+            except ValueError:
+                raise ValueError("Las fechas de la oferta no tienen un formato válido.")
+            if fecha_fin < fecha_inicio:
+                raise ValueError("La fecha final no puede ser anterior a la inicial.")
+            oferta_fecha_inicio = fecha_inicio
+            oferta_fecha_fin = fecha_fin
+        else:
+            oferta_fecha_inicio = None
+            oferta_fecha_fin = None
+
         cursor = PlanesController.obtener_cursor()
 
         try:
@@ -669,11 +835,14 @@ class PlanesController:
                 UPDATE planes
                 SET incluye = %s,
                     no_incluye = %s,
-                    costo_estimado = %s
+                    costo_estimado = %s,
+                    descuento_porcentaje = %s,
+                    oferta_fecha_inicio = %s,
+                    oferta_fecha_fin = %s
                 WHERE id_plan = %s
                   AND estado = 'Borrador';
                 """,
-                (incluye, no_incluye, costo, id_plan)
+                (incluye, no_incluye, costo, descuento, oferta_fecha_inicio, oferta_fecha_fin, id_plan)
             )
 
             if cursor.rowcount == 0:
@@ -800,6 +969,209 @@ class PlanesController:
 
             cursor.connection.commit()
             return nuevo_estado
+
+        except Exception:
+            cursor.connection.rollback()
+            raise
+
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+
+    # ========================================================
+    # ACTUALIZAR IMAGEN INDIVIDUAL DEL PLAN
+    # ========================================================
+
+    @staticmethod
+    def actualizar_imagen_plan(id_plan: int, imagen_url: str):
+        cursor = PlanesController.obtener_cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT imagen_url
+                FROM planes
+                WHERE id_plan = %s AND estado = 'Borrador'
+                FOR UPDATE;
+                """,
+                (id_plan,)
+            )
+            fila = cursor.fetchone()
+            if not fila:
+                raise ValueError(
+                    "El plan no existe o ya no está en borrador."
+                )
+            imagen_anterior = fila[0]
+            cursor.execute(
+                """
+                UPDATE planes
+                SET imagen_url = %s
+                WHERE id_plan = %s;
+                """,
+                (imagen_url, id_plan)
+            )
+            cursor.connection.commit()
+            return imagen_anterior
+        except Exception:
+            cursor.connection.rollback()
+            raise
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    @staticmethod
+    def imagen_referenciada(imagen_url: str) -> bool:
+        if not imagen_url:
+            return False
+        cursor = PlanesController.obtener_cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM planes WHERE imagen_url = %s
+                    UNION ALL
+                    SELECT 1 FROM destinos WHERE imagen_url = %s
+                );
+                """,
+                (imagen_url, imagen_url)
+            )
+            return bool(cursor.fetchone()[0])
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    # ========================================================
+    # GALERÍA DE IMÁGENES POR PLAN
+
+    @staticmethod
+    def agregar_imagenes_plan(id_plan: int, imagenes_url: list):
+        cursor = PlanesController.obtener_cursor()
+        try:
+            for url in imagenes_url:
+                cursor.execute(
+                    "INSERT INTO imagenes_plan (id_plan, imagen_url) VALUES (%s, %s);",
+                    (id_plan, url)
+                )
+            cursor.connection.commit()
+        except Exception:
+            cursor.connection.rollback()
+            raise
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    # SOLICITUDES DE CONTACTO DE CLIENTES
+    # ========================================================
+
+    @staticmethod
+    def crear_solicitud_contacto(
+        id_plan: int, nombre: str, correo: str,
+        telefono: str, mensaje: str = ""
+    ) -> int:
+        cursor = PlanesController.obtener_cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO solicitudes_contacto
+                    (id_plan, nombre, correo, telefono, mensaje)
+                SELECT %s, %s, %s, %s, %s
+                FROM planes
+                WHERE id_plan = %s AND estado = 'Publicado'
+                RETURNING id_solicitud;
+                """,
+                (id_plan, nombre, correo, telefono, mensaje, id_plan)
+            )
+            fila = cursor.fetchone()
+            if not fila:
+                raise ValueError(
+                    "El plan ya no está disponible para solicitudes."
+                )
+            cursor.connection.commit()
+            return fila[0]
+        except Exception:
+            cursor.connection.rollback()
+            raise
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    @staticmethod
+    def obtener_solicitudes_asesor(id_asesor: int) -> list:
+        cursor = PlanesController.obtener_cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    s.id_solicitud, s.nombre, s.correo, s.telefono,
+                    s.mensaje, s.estado, s.fecha_creacion,
+                    p.id_plan, p.nombre, s.fecha_actualizacion,
+                    s.actualizado_por, ua.nombre
+                FROM solicitudes_contacto s
+                JOIN planes p ON p.id_plan = s.id_plan
+                LEFT JOIN usuarios ua ON ua.id_usuario = s.actualizado_por
+                WHERE p.id_asesor = %s AND COALESCE(s.archivada,FALSE)=FALSE AND COALESCE(s.eliminada,FALSE)=FALSE
+                ORDER BY s.fecha_creacion DESC;
+                """,
+                (id_asesor,)
+            )
+            return [
+                {
+                    "id_solicitud": fila[0],
+                    "nombre": fila[1],
+                    "correo": fila[2],
+                    "telefono": fila[3],
+                    "mensaje": fila[4] or "",
+                    "estado": fila[5],
+                    "fecha_creacion": fila[6].isoformat(),
+                    "id_plan": fila[7],
+                    "nombre_plan": fila[8],
+                    "fecha_actualizacion": fila[9].isoformat() if fila[9] else None,
+                    "actualizado_por": fila[10],
+                    "nombre_actualizador": fila[11]
+                }
+                for fila in cursor.fetchall()
+            ]
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    # ========================================================
+    # ELIMINAR PLAN DEL ASESOR
+    # ========================================================
+
+    @staticmethod
+    def eliminar_plan(id_plan: int) -> bool:
+        """Elimina un borrador o un plan publicado de forma transaccional.
+
+        Las claves foráneas de itinerarios y revisiones usan ON DELETE CASCADE,
+        por lo que PostgreSQL elimina también sus registros dependientes.
+        Los planes pendientes no se pueden eliminar durante la revisión.
+        """
+        cursor = PlanesController.obtener_cursor()
+
+        try:
+            cursor.execute(
+                """
+                SELECT estado
+                FROM planes
+                WHERE id_plan = %s
+                FOR UPDATE;
+                """,
+                (id_plan,)
+            )
+
+            fila = cursor.fetchone()
+
+            if not fila:
+                return False
+
+            if fila[0] not in {"Borrador", "Publicado"}:
+                raise ValueError(
+                    "Solo se pueden eliminar planes en borrador o publicados."
+                )
+
+            cursor.execute(
+                "DELETE FROM planes WHERE id_plan = %s;",
+                (id_plan,)
+            )
+
+            eliminado = cursor.rowcount > 0
+            cursor.connection.commit()
+            return eliminado
 
         except Exception:
             cursor.connection.rollback()

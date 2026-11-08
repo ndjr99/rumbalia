@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Empresa de viajes</title>
+    <title>RUMBALIA | Viajes y experiencias</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -415,11 +415,65 @@
 
         .card-plan-info p { color: var(--texto-oscuro); font-size: 0.9rem; }
 
+
+        /* Galería unificada: portada y fotografías adicionales en un mismo carrusel */
+        .galeria-plan { width:100%; max-width:100%; margin:1rem 0 1.5rem; min-width:0; }
+        .galeria-visor { position:relative; width:100%; height:clamp(250px, 32vw, 390px); overflow:hidden; border-radius:18px; background:#edf2fb; box-shadow:0 8px 24px rgba(21,57,122,.12); }
+        .galeria-visor > img { display:block; width:100%; height:100%; object-fit:cover; transition:opacity .25s ease; cursor:zoom-in; }
+        .galeria-fallback { display:none; width:100%; height:100%; align-items:center; justify-content:center; flex-direction:column; gap:.5rem; color:var(--azul-principal,#15397A); font-weight:600; }
+        .galeria-fallback.visible { display:flex; }
+        .galeria-flecha { position:absolute; z-index:2; top:50%; transform:translateY(-50%); width:42px; height:42px; border:0; border-radius:50%; background:rgba(255,255,255,.94); color:#15397A; box-shadow:0 2px 12px rgba(0,0,0,.18); font-size:1.5rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        .galeria-flecha:hover { background:#fff; transform:translateY(-50%) scale(1.06); }
+        .galeria-flecha.anterior { left:14px; } .galeria-flecha.siguiente { right:14px; }
+        .galeria-miniaturas { display:flex; gap:.65rem; overflow-x:auto; padding:.85rem 2px .35rem; scroll-snap-type:x mandatory; }
+        .galeria-miniaturas button { flex:0 0 92px; height:68px; padding:0; border:2px solid transparent; border-radius:10px; overflow:hidden; background:#edf2fb; cursor:pointer; scroll-snap-align:start; opacity:.76; transition:border-color .2s, opacity .2s, transform .2s; }
+        .galeria-miniaturas button:hover { opacity:1; transform:translateY(-2px); }
+        .galeria-miniaturas button.activa { border-color:var(--azul-principal,#15397A); opacity:1; box-shadow:0 0 0 2px rgba(21,57,122,.12); }
+        .galeria-miniaturas img { display:block; width:100%; height:100%; object-fit:cover; }
+        .galeria-pie { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-top:.25rem; color:var(--texto-gris,#64748b); font-size:.85rem; }
+        .galeria-abrir { border:0; background:none; color:var(--azul-principal,#15397A); font-weight:600; cursor:pointer; }
+        /* Sobrescribe los estilos generales de imágenes del panel derecho: sin esto,
+           las miniaturas heredaban 260px de alto y quedaban deformadas/cortadas. */
+        .detalle-right .galeria-visor > img { width:100%; height:100%; margin:0; display:block; border-radius:0; object-fit:cover; }
+        .detalle-right .galeria-miniaturas img { width:100%; height:100%; margin:0; display:block; border-radius:0; object-fit:cover; }
+        @media(max-width:700px){ .galeria-visor{height:250px;} .galeria-flecha{width:36px;height:36px;} .galeria-miniaturas button{flex-basis:78px;height:60px;} }
+
         /* ---------------- 04 DETALLE DEL PLAN ---------------- */
         .grid-detalle-plan {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            /* Las columnas no deben crecer por el tamaño intrínseco de una foto. */
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            align-items: start;
             gap: 3rem;
+        }
+
+        .grid-detalle-plan > .detalle-left,
+        .grid-detalle-plan > .detalle-right {
+            min-width: 0;
+            width: 100%;
+        }
+
+        /* La revisión del administrador conserva siempre las mismas proporciones. */
+        #vista-admin-revision .grid-detalle-plan {
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+            align-items: start;
+            column-gap: clamp(1.5rem, 3vw, 3rem);
+        }
+
+        #vista-admin-revision .detalle-right .galeria-plan {
+            width: 100%;
+            min-width: 0;
+        }
+
+        #vista-admin-revision .galeria-visor {
+            height: clamp(300px, 34vw, 430px);
+            aspect-ratio: 4 / 3;
+        }
+
+        @media (max-width: 900px) {
+            #vista-admin-revision .grid-detalle-plan {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
 
         .detalle-left h1 {
@@ -432,7 +486,39 @@
 
         .sub-tag { color: var(--texto-oscuro); margin-bottom: 2rem; font-size: 1rem; }
 
-        .bloque-incluye h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .bloque-incluye h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            padding-bottom: .45rem;
+            border-bottom: 1px solid #e7edf7;
+        }
+        /* Mantener la misma distancia entre cada título y su contenido. */
+        .bloque-incluye #det-itinerario {
+            margin-top: 1.15rem;
+            display: grid;
+            gap: .55rem;
+        }
+        .bloque-incluye #det-itinerario .dia-item {
+            padding: .7rem .85rem;
+            background: #f8faff;
+            border: 1px solid #e8eef8;
+            border-left: 3px solid #c8d8f1;
+            border-radius: 9px;
+        }
+        .bloque-incluye #det-itinerario .dia-item h4 {
+            color: #15397A;
+            font-size: .98rem;
+            margin: 0 0 .3rem;
+        }
+        .bloque-incluye #det-itinerario .dia-item p {
+            margin: 0;
+            line-height: 1.6;
+        }
+        .bloque-incluye #det-incluye { margin-top: 1.15rem; }
+        .bloque-incluye #det-incluye + h3 { margin-top: 1.8rem; }
+        .bloque-incluye #det-no-incluye { margin-top: 1rem; }
+        .bloque-incluye #det-itinerario + h3 { margin-top: 1.7rem; }
 
         .bloque-incluye ul {
             list-style: disc;
@@ -621,6 +707,14 @@
             margin-top: 1.5rem;
         }
 
+        /* Motivo de rechazo visible para el asesor durante la edición */
+        .aviso-rechazo-asesor { margin:0 0 1.35rem; padding:1.1rem 1.25rem; border:1px solid #efc66e; border-left:5px solid #d99522; border-radius:14px; background:#fff9eb; color:#654914; }
+        .aviso-rechazo-encabezado { display:flex; align-items:center; gap:.65rem; color:#80540c; }
+        .aviso-rechazo-encabezado span { display:grid; place-items:center; width:25px; height:25px; flex:0 0 25px; border-radius:50%; background:#f7e5bd; font-weight:800; }
+        .aviso-rechazo-asesor p { margin:.8rem 0 .35rem; font-weight:700; }
+        .aviso-rechazo-motivo { padding:.75rem .9rem; border-radius:9px; background:rgba(255,255,255,.75); line-height:1.55; white-space:pre-wrap; }
+        .aviso-rechazo-asesor small { display:block; margin-top:.65rem; color:#806b48; }
+
         /* Motivo de rechazo del administrador */
         .caja-rechazo { margin-top: 1.5rem; }
         .caja-rechazo textarea { min-height: 5rem; resize: vertical; font-family: inherit; }
@@ -628,8 +722,9 @@
         /* ---------------- AVISOS EMERGENTES ---------------- */
         .mensaje-toast {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: auto;
+            right: 24px;
+            bottom: 24px;
             background: var(--azul-principal);
             color: #FFFFFF;
             padding: 0.75rem 1.5rem;
@@ -637,11 +732,47 @@
             font-weight: 500;
             display: none;
             z-index: 999;
-            max-width: 360px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            max-width: min(420px, calc(100vw - 32px));
+            box-shadow: 0 8px 24px rgba(15, 35, 75, 0.22);
+            animation: toastEntrada .22s ease-out;
         }
 
         .mensaje-toast.error { background: var(--error); }
+        @keyframes toastEntrada { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+        /* Confirmación de acciones destructivas con identidad visual de Turismo */
+        .modal-confirmacion { position:fixed; inset:0; z-index:1200; display:none; align-items:center; justify-content:center; padding:1rem; background:rgba(13,27,52,.48); backdrop-filter:blur(3px); }
+        .modal-confirmacion.visible { display:flex; }
+        .modal-confirmacion-card { width:min(100%,440px); background:#fff; border-radius:20px; padding:1.75rem; box-shadow:0 24px 70px rgba(10,25,55,.25); animation:modalEntrada .2s ease-out; }
+        .modal-confirmacion-icono { width:52px; height:52px; display:grid; place-items:center; border-radius:16px; background:#fff1f0; color:#c43d3d; font-size:1.55rem; margin-bottom:1rem; }
+        .modal-confirmacion-card h2 { color:#15397A; font-size:1.3rem; margin:0 0 .55rem; }
+        .modal-confirmacion-card p { color:#5c6678; line-height:1.55; margin:0; }
+        .modal-confirmacion-acciones { display:flex; justify-content:flex-end; gap:.75rem; margin-top:1.5rem; }
+        .modal-confirmacion-acciones button { min-width:112px; border-radius:999px; padding:.72rem 1.15rem; font-weight:700; cursor:pointer; }
+        .btn-confirmar-cancelar { border:1px solid #d7deeb; color:#15397A; background:#fff; }
+        .btn-confirmar-eliminar { border:1px solid #c43d3d; color:#fff; background:#c43d3d; }
+        .btn-confirmar-eliminar:hover { background:#a92f2f; }
+        @keyframes modalEntrada { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+        /* Orden visual de la pantalla de revisión del administrador */
+        #vista-admin-revision > .revision-back { margin-bottom:1.5rem; }
+        #vista-admin-revision #admin-revision-titulo { margin:0 0 1.35rem; }
+        #vista-admin-revision .detalle-left { padding-top:.15rem; }
+        #vista-admin-revision .detalle-left > h3 { color:#15397A; font-size:1.08rem; margin:1.7rem 0 .8rem; }
+        #vista-admin-revision .detalle-left > h3:first-of-type { margin-top:1.8rem; }
+        #vista-admin-revision #admin-revision-precio { margin-bottom:.6rem; }
+        #vista-admin-revision #admin-revision-datos { line-height:1.6; margin-bottom:1.25rem; color:#596579; }
+        #admin-revision-itinerario { display:grid; gap:.85rem; }
+        #admin-revision-itinerario .dia-item { padding:.9rem 1rem; border:1px solid #e4eaf4; border-radius:12px; background:#fbfcff; }
+        #admin-revision-itinerario .dia-item h4 { color:#15397A; font-size:1rem; margin:0 0 .4rem; }
+        #admin-revision-itinerario .dia-item p { line-height:1.6; margin:0; }
+        #vista-admin-revision #admin-revision-incluye,
+        #vista-admin-revision #admin-revision-no-incluye { line-height:1.65; margin:0 0 .35rem; padding:.85rem 1rem; background:#f6f8fc; border-radius:12px; }
+        #vista-admin-revision .detalle-right { padding-top:.15rem; }
+        #vista-admin-revision .galeria-plan { margin-top:0; }
+        #vista-admin-revision .caja-rechazo { margin-top:1.8rem; }
+        #vista-admin-revision .grid-acciones-ia { margin-top:1.2rem; }
+        @media(max-width:560px){ .mensaje-toast { right:16px; bottom:16px; } .modal-confirmacion-acciones { flex-direction:column-reverse; } .modal-confirmacion-acciones button { width:100%; } }
 
         /* ---------------- PANTALLAS PEQUEÑAS ---------------- */
         @media (max-width: 900px) {
@@ -664,6 +795,47 @@
         }
 
         
+        /* Pulido visual sutil: conserva paleta, estructura y tipografía del MVP. */
+        .card-plan {
+            box-shadow: 0 4px 14px rgba(21, 57, 122, 0.07);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-plan:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px rgba(21, 57, 122, 0.13);
+        }
+        .item-plan-filas {
+            box-shadow: 0 3px 12px rgba(21, 57, 122, 0.045);
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .item-plan-filas:hover {
+            border-color: var(--azul-borde-ia);
+            box-shadow: 0 7px 18px rgba(21, 57, 122, 0.08);
+        }
+        .form-crear-container {
+            background: #FFFFFF;
+            border: 1px solid #E5EAF3;
+            border-radius: 18px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 18px rgba(21, 57, 122, 0.055);
+        }
+        .input-box {
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .input-box:focus {
+            border-color: var(--azul-principal);
+            box-shadow: 0 0 0 3px rgba(21, 57, 122, 0.09);
+            outline: none;
+        }
+        .btn-solid-blue, .btn-reservar, .btn-outline-blue {
+            transition: transform 0.18s ease, box-shadow 0.18s ease,
+                        background-color 0.18s ease;
+        }
+        .btn-solid-blue:hover, .btn-reservar:hover, .btn-outline-blue:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 13px rgba(21, 57, 122, 0.14);
+        }
+
         /* DETALLE DE REVISIÓN DEL ADMINISTRADOR */
 
         .revision-detalle {
@@ -774,20 +946,321 @@
             height: 16px;
         }
 
+        .acciones-plan {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-eliminar-borrador {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: #fff;
+            color: #dc2626;
+            border: 1px solid #dc2626;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-eliminar-borrador:hover {
+            background: #dc2626;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.18);
+        }
+
+
+        /* Ajustes visuales finales: pequeños detalles, sin cambiar estructura ni identidad. */
+        header {
+            border-bottom-color: #E7ECF4;
+            box-shadow: 0 2px 12px rgba(21, 57, 122, 0.045);
+        }
+        .brand {
+            transition: opacity .18s ease;
+            letter-spacing: -.02em;
+            display: inline-flex; align-items: center; text-decoration: none;
+        }
+        .brand img { display:block; width:220px; max-width:32vw; height:auto; object-fit:contain; }
+        .brand:hover { opacity:.88; }
+        .login-brand { width: min(270px, 80%); height:auto; display:block; margin:0 auto 1.1rem; }
+        .precio-oferta-anterior { color:var(--texto-gris); text-decoration:line-through; font-size:.9rem; margin-right:.35rem; }
+        .etiqueta-descuento { display:inline-block; background:#E5F3E8; color:#276738; border-radius:999px; padding:.22rem .55rem; font-size:.78rem; font-weight:700; margin-bottom:.35rem; }
+        .form-oferta { background:#F6F8FC; border:1px solid #E2EAF6; border-radius:14px; padding:1rem; margin:0 0 1.5rem; }
+        .form-oferta h3 { color:var(--azul-principal); margin-bottom:.35rem; }
+        @media(max-width:600px){ .brand img{width:175px;max-width:48vw;} }
+        nav.menu-nav a:not(.proximamente) {
+            position: relative;
+            transition: color .18s ease;
+        }
+        nav.menu-nav a:not(.proximamente)::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -7px;
+            height: 2px;
+            border-radius: 2px;
+            background: var(--azul-principal);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .18s ease;
+        }
+        nav.menu-nav a:not(.proximamente):hover,
+        nav.menu-nav a.activo { color: var(--azul-principal); }
+        nav.menu-nav a.activo::after,
+        nav.menu-nav a:not(.proximamente):hover::after { transform: scaleX(1); }
+
+        h1.titulo-seccion, h2.titulo-seccion {
+            color: var(--azul-principal);
+            letter-spacing: -.025em;
+        }
+        .caja-buscador {
+            border-color: #E5EAF3;
+            box-shadow: 0 5px 18px rgba(21, 57, 122, .055);
+        }
+        .card-continente {
+            border-color: #E5EAF3;
+            box-shadow: 0 4px 14px rgba(21, 57, 122, .065);
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+        .card-continente:hover {
+            border-color: var(--azul-borde-ia);
+            box-shadow: 0 10px 22px rgba(21, 57, 122, .12);
+        }
+        .card-continente img,
+        .card-plan img { transition: transform .35s ease; }
+        .card-continente:hover img,
+        .card-plan:hover img { transform: scale(1.025); }
+        .card-continente h3 {
+            color: var(--azul-principal);
+            font-weight: 600;
+            background: #fff;
+        }
+        .card-plan { border-color: #E5EAF3; }
+        .card-plan-info h3 { color: var(--azul-principal); }
+        .card-plan-info p { line-height: 1.5; }
+
+        .card-stat {
+            border-color: #E5EAF3;
+            background: linear-gradient(145deg, #FFFFFF 65%, #F7F9FD 100%);
+            box-shadow: 0 4px 14px rgba(21, 57, 122, .055);
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .card-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(21, 57, 122, .09);
+        }
+        .item-plan-filas { border-color: #E7ECF4; }
+        .badge-estado { border-radius: 999px; padding: .35rem .75rem; font-size: .78rem; }
+        .input-pill:focus, .input-box:focus {
+            border-color: var(--azul-principal);
+            box-shadow: 0 0 0 3px rgba(21, 57, 122, .085);
+        }
+        .btn-nav-login, .btn-buscar, .btn-crear-nuevo, .btn-centrado-ia,
+        .btn-solid-blue, .btn-reservar, .btn-outline-blue {
+            transition: background-color .18s ease, color .18s ease,
+                        transform .18s ease, box-shadow .18s ease;
+        }
+        .btn-nav-login:hover, .btn-buscar:hover, .btn-crear-nuevo:hover,
+        .btn-centrado-ia:hover, .btn-solid-blue:hover, .btn-reservar:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(21, 57, 122, .16);
+        }
+        .dia-item { border-radius: 12px; }
+        .galeria-visor { box-shadow: 0 8px 22px rgba(21, 57, 122, .10); }
+        .galeria-miniaturas button { border-color: transparent; }
+        .galeria-miniaturas button.activa { border-color: var(--azul-principal); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+
+        /* Secciones públicas complementarias: mantienen la paleta y estructura de Turismo. */
+        .buscador-activo { opacity:1; }
+        .buscador-encabezado { display:flex; flex-direction:column; gap:.3rem; margin-bottom:1rem; color:var(--azul-principal); }
+        .buscador-encabezado strong { font-size:1.12rem; }
+        .buscador-encabezado span, .texto-intro-publico { color:var(--texto-gris); line-height:1.6; }
+        .filtros-busqueda { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; }
+        .filtros-busqueda .input-pill { min-width:0; width:100%; }
+        .filtros-busqueda select.input-pill {
+            appearance:none; -webkit-appearance:none; -moz-appearance:none;
+            padding-right:3.8rem;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2315397A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat:no-repeat; background-position:right 1.55rem center;
+            cursor:pointer;
+        }
+        .admin-subnav { display:flex; flex-wrap:wrap; gap:.65rem; margin:0 0 1.4rem; }
+        .admin-subnav button { border:1px solid #dce5f2; background:#fff; color:var(--azul-principal); border-radius:999px; padding:.65rem 1rem; cursor:pointer; font-weight:600; }
+        .admin-subnav button:hover { background:#eef3fb; }
+        .tabla-admin { width:100%; border-collapse:collapse; background:#fff; border:1px solid #e5eaf3; border-radius:14px; overflow:hidden; }
+        .tabla-admin th,.tabla-admin td { text-align:left; padding:.85rem 1rem; border-bottom:1px solid #edf1f7; }
+        .tabla-admin th { background:#f5f8fd; color:var(--azul-principal); }
+        #form-admin-crear-usuario.form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 1rem; }
+        #form-admin-crear-usuario .form-row { min-width:0; }
+        .acciones-usuario { display:flex; align-items:center; gap:.65rem; min-width:230px; }
+        .acciones-usuario button { display:inline-flex; align-items:center; justify-content:center; min-height:42px; min-width:104px; padding:.65rem 1rem; border-radius:999px; font:inherit; font-size:.9rem; font-weight:600; line-height:1.15; white-space:nowrap; cursor:pointer; }
+        .acciones-usuario .btn-usuario-eliminar { color:#b42318; background:#fff; border:1px solid #e4a09b; }
+        .acciones-usuario .btn-usuario-eliminar:hover { color:#fff; background:#b42318; border-color:#b42318; }
+        .acciones-usuario .btn-outline-blue { min-width:116px; }
+        .tabla-admin th:last-child,.tabla-admin td:last-child { min-width:250px; }
+        /* Detalles de solicitudes: lectura clara y acciones consistentes. */
+        .solicitud-detalle { margin:.65rem 0 0; }
+        .solicitud-detalle summary { display:inline-flex; align-items:center; gap:.35rem; color:var(--azul-principal); font-weight:600; cursor:pointer; padding:.2rem 0; }
+        .solicitud-detalle-contenido { margin-top:.7rem; padding:.85rem 1rem; background:#f7f9fd; border:1px solid #e5ebf5; border-radius:12px; display:grid; gap:.55rem; line-height:1.5; }
+        .solicitud-detalle-contenido p { margin:0; overflow-wrap:anywhere; }
+        /* Tarjeta de solicitud del asesor: separar información y acciones. */
+        .tarjeta-solicitud-asesor {
+            align-items:flex-start;
+            gap:1.5rem;
+        }
+        .tarjeta-solicitud-asesor > .informacion-solicitud-asesor {
+            flex:1 1 0;
+            min-width:0;
+        }
+        .tarjeta-solicitud-asesor .solicitud-detalle-contenido {
+            margin-right:.25rem;
+        }
+        .tarjeta-solicitud-admin .informacion-solicitud-asesor { overflow-wrap:anywhere; }
+        .tarjeta-solicitud-admin .informacion-solicitud-asesor p { margin:.35rem 0; }
+        .tarjeta-solicitud-admin .actualizacion-solicitud-admin { display:block; color:var(--texto-gris); margin-top:.8rem; line-height:1.45; }
+        .lista-solicitudes-admin { display:flex; flex-direction:column; gap:1rem; }
+        .contacto-solicitud-admin {
+            display:flex;
+            flex-direction:column;
+            align-items:flex-start;
+            gap:.4rem;
+            overflow-wrap:anywhere;
+            line-height:1.45;
+        }
+        .select-estado-solicitud {
+            appearance:none;
+            -webkit-appearance:none;
+            -moz-appearance:none;
+            padding-right:2.8rem !important;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2315397A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat:no-repeat;
+            background-position:right 1rem center;
+            cursor:pointer;
+        }
+        /* Acciones de solicitudes: ambos botones comparten exactamente la misma caja. */
+        .acciones-solicitud-asesor {
+            display:grid;
+            grid-template-columns:minmax(0,1fr);
+            gap:.5rem;
+            width:273px;
+            min-width:273px;
+            flex:0 0 273px;
+            box-sizing:border-box;
+        }
+        .acciones-solicitud-asesor > button {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            box-sizing:border-box;
+            width:100%;
+            min-width:0;
+            min-height:57px;
+            padding:.8rem 1rem;
+            border-radius:999px;
+            font:inherit;
+            font-size:.95rem;
+            font-weight:600;
+            line-height:1.15;
+            white-space:nowrap;
+        }
+        .btn-delete-action { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; width:100%; min-width:0; min-height:57px; padding:.8rem 1rem; border:1px solid #e4a09b; border-radius:999px; background:#fff; color:#b42318; font:inherit; font-size:.95rem; font-weight:600; line-height:1.15; cursor:pointer; transition:background .18s ease,color .18s ease,border-color .18s ease; }
+        .btn-delete-action:hover { background:#b42318; border-color:#b42318; color:#fff; }
+        .tabla-admin td { vertical-align:middle; }
+        .tabla-admin td .solicitud-detalle-contenido { min-width:190px; }
+        .tabla-admin td:last-child { min-width:160px; }
+        .tabla-admin td:last-child .btn-delete-action,.tabla-admin td:last-child .btn-outline-blue { display:inline-flex; align-items:center; justify-content:center; width:100%; margin:.2rem 0; min-width:112px; min-height:44px; padding:.8rem; box-sizing:border-box; font-size:.95rem; }
+        @media (max-width:900px) {
+            .acciones-solicitud-asesor { width:100%; min-width:0; flex:1 1 220px; }
+            .tarjeta-solicitud-asesor { gap:1.25rem; }
+        }
+        @media (max-width:620px) {
+            .tarjeta-solicitud-asesor { flex-direction:column; }
+            .tarjeta-solicitud-asesor > .informacion-solicitud-asesor,
+            .tarjeta-solicitud-asesor > .acciones-solicitud-asesor { width:100%; flex:1 1 auto; }
+        }
+        @media (max-width:700px) { #form-admin-crear-usuario.form-grid { grid-template-columns:1fr; } .acciones-usuario { min-width:230px; } }
+        .admin-report-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin:1rem 0; }
+        .admin-report-card { background:#fff; border:1px solid #e5eaf3; border-radius:14px; padding:1.2rem; box-shadow:0 4px 14px rgba(21,57,122,.05); }
+        .admin-report-card strong { display:block; color:var(--azul-principal); font-size:1.65rem; margin-top:.4rem; }
+        .acciones-plan .btn-volver-borrador { background:#eef3fb; color:var(--azul-principal); border:1px solid #d8e3f3; border-radius:9px; padding:.55rem .8rem; cursor:pointer; font-weight:600; }
+
+        .filtros-busqueda .btn-buscar { grid-column:1/-1; justify-self:end; min-width:190px; }
+        .seccion-publica { padding:1rem 0 2rem; }
+        .seccion-publica .titulo-seccion { margin-bottom:.7rem; }
+        .texto-intro-publico { margin-bottom:1.5rem; }
+        .grid-categorias-experiencia { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin:1.5rem 0 2rem; }
+        .card-categoria-experiencia { text-align:left; display:flex; flex-direction:column; gap:.45rem; padding:1.2rem; border:1px solid var(--gris-borde); border-radius:15px; background:#fff; cursor:pointer; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+        .card-categoria-experiencia:hover { transform:translateY(-3px); border-color:#b9cbe8; box-shadow:0 9px 22px rgba(21,57,122,.09); }
+        .card-categoria-experiencia span { font-size:1.65rem; }
+        .card-categoria-experiencia strong { color:var(--azul-principal); font-size:1rem; }
+        .card-categoria-experiencia small { color:var(--texto-gris); line-height:1.45; }
+        .encabezado-resultados-publicos { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin:1.5rem 0 1rem; }
+        .encabezado-resultados-publicos h2, .subtitulo-publico { color:var(--azul-principal); font-size:1.25rem; }
+        .mensaje-sin-resultados { grid-column:1/-1; padding:1.2rem; color:var(--texto-gris); background:#f8faff; border:1px solid #e8eef8; border-radius:12px; }
+        .card-plan-lugar { display:block; color:var(--texto-gris); font-size:.88rem; margin:.25rem 0; }
+        .panel-publico-destacado { padding:clamp(1.5rem,4vw,3rem); background:linear-gradient(135deg,#f5f8fe,#eaf0fa); border:1px solid #e1e9f6; border-radius:20px; }
+        .panel-publico-destacado .titulo-seccion { color:var(--azul-principal); }
+        .panel-publico-destacado > p { max-width:760px; color:var(--texto-gris); line-height:1.7; }
+        .icono-seccion-publica { display:inline-flex; width:42px; height:42px; border-radius:12px; align-items:center; justify-content:center; color:var(--azul-principal); background:#fff; font-size:1.4rem; margin-bottom:1rem; }
+        .ofertas-sin-promociones { margin-top:1.5rem; padding:1.2rem; border-radius:14px; background:#fff; border:1px solid #e2e9f4; display:flex; flex-direction:column; align-items:flex-start; gap:.65rem; }
+        .ofertas-sin-promociones strong { color:var(--azul-principal); }
+        .ofertas-sin-promociones span { color:var(--texto-gris); }
+        .subtitulo-publico { margin:1.8rem 0 1rem; }
+        .nosotros-hero { display:grid; grid-template-columns:1.1fr .9fr; gap:2rem; align-items:center; padding:1.5rem 0 2rem; }
+        .nosotros-hero p { max-width:650px; margin:1rem 0 1.4rem; color:var(--texto-gris); line-height:1.8; }
+        .etiqueta-publica { color:var(--azul-principal); font-weight:700; font-size:.78rem; letter-spacing:.09em; }
+        .nosotros-visual { min-height:280px; border-radius:20px; background:linear-gradient(145deg,rgba(21,57,122,.85),rgba(57,121,201,.55)),url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1100&q=80') center/cover; color:#fff; display:flex; flex-direction:column; justify-content:flex-end; padding:1.5rem; gap:.5rem; box-shadow:0 12px 28px rgba(21,57,122,.13); }
+        .nosotros-visual span { font-size:2rem; }
+        .nosotros-valores { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+        .nosotros-valores article { padding:1.25rem; border:1px solid var(--gris-borde); border-radius:15px; background:#fff; }
+        .nosotros-valores article span { font-size:1.6rem; }
+        .nosotros-valores h3 { color:var(--azul-principal); margin:.6rem 0; }
+        .nosotros-valores p { color:var(--texto-gris); line-height:1.6; font-size:.94rem; }
+        @media(max-width:800px){ .filtros-busqueda{grid-template-columns:repeat(2,minmax(0,1fr));} .grid-categorias-experiencia{grid-template-columns:repeat(2,minmax(0,1fr));} .nosotros-hero{grid-template-columns:1fr;} }
+        @media(max-width:520px){ .filtros-busqueda,.grid-categorias-experiencia,.nosotros-valores{grid-template-columns:1fr;} .filtros-busqueda .btn-buscar{width:100%;} .encabezado-resultados-publicos{align-items:flex-start;flex-direction:column;} }
+
     </style>
 </head>
 <body>
 
-    <div id="toast" class="mensaje-toast"></div>
+    <div id="toast" class="mensaje-toast" role="status" aria-live="polite"></div>
+
+    <div id="modal-confirmacion" class="modal-confirmacion" role="dialog" aria-modal="true" aria-labelledby="modal-confirmacion-titulo">
+        <div class="modal-confirmacion-card">
+            <div class="modal-confirmacion-icono" aria-hidden="true">!</div>
+            <h2 id="modal-confirmacion-titulo">¿Eliminar este plan?</h2>
+            <p id="modal-confirmacion-mensaje">Esta acción no se puede deshacer.</p>
+            <div class="modal-confirmacion-acciones">
+                <button type="button" class="btn-confirmar-cancelar" onclick="resolverConfirmacion(false)">Cancelar</button>
+                <button type="button" class="btn-confirmar-eliminar" onclick="resolverConfirmacion(true)">Sí, eliminar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- HEADER NAVEGACIÓN -->
     <header>
-        <a class="brand" onclick="mostrarVista('home')">Empresa de viajes</a>
+        <a class="brand" onclick="mostrarVista('home')" aria-label="Rumbalia, inicio"><img src="/static/img/logo-rumbalia.png" alt="RUMBALIA – viajes y experiencias"></a>
         <nav class="menu-nav" id="menu-navegacion">
             <a onclick="mostrarVista('home')" class="activo">Reservar</a>
-            <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Experiencias</a>
-            <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Ofertas</a>
-            <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Nosotros</a>
+            <a onclick="mostrarVista('experiencias')">Experiencias</a>
+            <a onclick="mostrarVista('ofertas')">Ofertas</a>
+            <a onclick="mostrarVista('nosotros')">Nosotros</a>
             <button class="btn-nav-login" onclick="mostrarVista('login')">Iniciar sesión</button>
         </nav>
     </header>
@@ -796,24 +1269,33 @@
 
         <!-- PANTALLA 01: HOME BUSCADOR & CONTINENTES -->
         <section id="vista-home">
-            <div class="caja-buscador proximamente" title="Disponible en el Sprint 2">
-                <div class="tabs-tipo-viaje">
-                    <button class="tab-btn activo">Ida y vuelta</button>
-                    <button class="tab-btn">Solo ida</button>
+            <div class="caja-buscador buscador-activo">
+                <div class="buscador-encabezado">
+                    <strong>Encuentra tu próximo destino</strong>
+                    <span>Busca entre los planes turísticos publicados.</span>
                 </div>
-                
-                <div class="fila-busqueda">
-                    <div class="par-inputs">
-                        <input type="text" class="input-pill" placeholder="Origen" disabled>
-                        <input type="text" class="input-pill" placeholder="Destino" disabled>
-                    </div>
-                    <div class="par-inputs">
-                        <input type="text" class="input-pill" placeholder="Salida" disabled>
-                        <input type="text" class="input-pill" placeholder="Regreso" disabled>
-                    </div>
-                    <input type="text" class="input-pill" placeholder="Pasajeros" disabled>
-                    <button class="btn-buscar" disabled>Buscar</button>
-                </div>
+                <form class="fila-busqueda filtros-busqueda" onsubmit="event.preventDefault(); buscarPlanes();">
+                    <input id="buscar-destino" type="search" class="input-pill" placeholder="Ciudad o destino">
+                    <input id="buscar-pais" type="search" class="input-pill" placeholder="País">
+                    <select id="buscar-duracion" class="input-pill">
+                        <option value="">Cualquier duración</option>
+                        <option value="1-3">1 a 3 días</option>
+                        <option value="4-7">4 a 7 días</option>
+                        <option value="8-14">8 a 14 días</option>
+                        <option value="15-">15 días o más</option>
+                    </select>
+                    <select id="buscar-interes" class="input-pill">
+                        <option value="">Todos los intereses</option>
+                        <option value="Aventura">Aventura</option>
+                        <option value="Playa">Playa</option>
+                        <option value="Cultura">Cultura</option>
+                        <option value="Naturaleza">Naturaleza</option>
+                        <option value="Gastronomía">Gastronomía</option>
+                        <option value="Familiar">Familiar</option>
+                    </select>
+                    <input id="buscar-presupuesto" type="number" min="0" class="input-pill" placeholder="Presupuesto máximo (COP)">
+                    <button class="btn-buscar" type="submit">Buscar planes</button>
+                </form>
             </div>
 
             <h1 class="titulo-seccion">Descubre nuestros planes</h1>
@@ -839,6 +1321,56 @@
                     <img src="https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9" alt="Oceanía" onerror="usarFallbackImg(this, 'Oceanía')">
                     <h3>Oceanía</h3>
                 </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: EXPERIENCIAS -->
+        <section id="vista-experiencias" class="oculto seccion-publica">
+            <h1 class="titulo-seccion">Experiencias para cada forma de viajar</h1>
+            <p class="texto-intro-publico">Elige lo que te inspira y descubre planes publicados que se ajustan a tus intereses.</p>
+            <div class="grid-categorias-experiencia">
+                <button class="card-categoria-experiencia" onclick="cargarExperiencias('Aventura')"><span>🏞️</span><strong>Aventura</strong><small>Explora y vive nuevas emociones</small></button>
+                <button class="card-categoria-experiencia" onclick="cargarExperiencias('Playa')"><span>🏖️</span><strong>Playa y descanso</strong><small>Disfruta del mar y desconéctate</small></button>
+                <button class="card-categoria-experiencia" onclick="cargarExperiencias('Cultura')"><span>🏛️</span><strong>Cultura</strong><small>Conoce historias y tradiciones</small></button>
+                <button class="card-categoria-experiencia" onclick="cargarExperiencias('Naturaleza')"><span>🌿</span><strong>Naturaleza</strong><small>Conecta con paisajes únicos</small></button>
+                <button class="card-categoria-experiencia" onclick="cargarExperiencias('Gastronomía')"><span>🍽️</span><strong>Gastronomía</strong><small>Descubre sabores locales</small></button>
+                <button class="card-categoria-experiencia" onclick="cargarExperiencias('Familiar')"><span>👨‍👩‍👧</span><strong>En familia</strong><small>Comparte momentos especiales</small></button>
+            </div>
+            <div class="encabezado-resultados-publicos"><h2 id="titulo-experiencias-resultados">Planes por experiencia</h2><button class="btn-outline-blue" onclick="cargarExperiencias('')">Ver todos</button></div>
+            <div class="grid-planes" id="experiencias-resultados"></div>
+        </section>
+
+        <!-- SECCIÓN: OFERTAS -->
+        <section id="vista-ofertas" class="oculto seccion-publica">
+            <div class="panel-publico-destacado">
+                <span class="icono-seccion-publica">✦</span>
+                <h1 class="titulo-seccion">Ofertas y oportunidades para viajar</h1>
+                <p>Descubre planes seleccionados para que tu próxima aventura sea aún mejor.</p>
+                <div class="ofertas-sin-promociones oculto" id="ofertas-sin-promociones">
+                    <strong>Por ahora no hay promociones activas.</strong>
+                    <span>Mientras llegan nuevas ofertas, puedes explorar los planes turísticos disponibles.</span>
+                    <button class="btn-solid-blue" type="button" onclick="mostrarVista('home')">Explorar planes disponibles</button>
+                </div>
+            </div>
+            <h2 class="subtitulo-publico" id="titulo-ofertas-resultados">Ofertas vigentes</h2>
+            <div class="grid-planes" id="ofertas-planes-disponibles"></div>
+        </section>
+
+        <!-- SECCIÓN: NOSOTROS -->
+        <section id="vista-nosotros" class="oculto seccion-publica">
+            <div class="nosotros-hero">
+                <div>
+                    <span class="etiqueta-publica">VIAJES CON PROPÓSITO</span>
+                    <h1 class="titulo-seccion">Cada destino puede convertirse en una gran historia.</h1>
+                    <p>Somos una plataforma que conecta a viajeros con planes turísticos diseñados por asesores. Reunimos destinos, itinerarios y experiencias en un solo lugar para que explorar tu próximo viaje sea más sencillo.</p>
+                    <button class="btn-solid-blue" onclick="mostrarVista('home')">Explorar planes</button>
+                </div>
+                <div class="nosotros-visual" role="img" aria-label="Paisaje de viaje"><span>✈</span><strong>Tu próxima experiencia comienza aquí</strong></div>
+            </div>
+            <div class="nosotros-valores">
+                <article><span>🧭</span><h3>Orientación</h3><p>Información clara para comparar destinos y elegir con confianza.</p></article>
+                <article><span>🌎</span><h3>Descubrimiento</h3><p>Planes que acercan a los viajeros a nuevas culturas y lugares.</p></article>
+                <article><span>🤝</span><h3>Acompañamiento</h3><p>Un asesor puede dar continuidad a tu solicitud de información.</p></article>
             </div>
         </section>
 
@@ -876,11 +1408,50 @@
                 </div>
 
                 <div class="detalle-right">
-                    <img id="det-img" src="" alt="Imagen del destino" onerror="usarFallbackImg(this, 'Plan Turístico')">
+                    <div class="galeria-plan" id="det-galeria" aria-label="Galería de fotografías del plan"></div>
                     <p class="desc-text" id="det-descripcion">
                         Disfruta de una experiencia inolvidable diseñada a tu medida con la mejor asistencia comercial y personalizada.
                     </p>
-                    <button class="btn-reservar proximamente" title="Disponible en el Sprint 2">Reservar este plan</button>
+                    <button class="btn-reservar" type="button" onclick="abrirFormularioSolicitud()">Me interesa este plan</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTINUACIÓN DEL CLIENTE: SOLICITUD DE CONTACTO -->
+        <section id="vista-cliente-solicitud" class="oculto">
+            <button class="btn-outline-blue" type="button" onclick="mostrarVista('detalle-plan')">← Volver al plan</button>
+            <div class="form-crear-container" style="max-width:760px; margin:1.5rem auto;">
+                <h1 class="titulo-seccion">Solicita más información</h1>
+                <p style="color:var(--texto-gris); margin-bottom:1.25rem;">
+                    Déjanos tus datos y un asesor se pondrá en contacto contigo.
+                </p>
+                <div class="caja-sugerido-ia" style="padding:1rem; margin-bottom:1.25rem;">
+                    <strong>Plan seleccionado</strong>
+                    <p id="solicitud-plan-nombre" style="margin-top:.35rem;"></p>
+                </div>
+                <div id="formulario-solicitud-cliente">
+                    <div class="form-row">
+                        <label for="cliente-solicitud-nombre">Nombre completo</label>
+                        <input id="cliente-solicitud-nombre" class="input-box" type="text" maxlength="100" autocomplete="name" placeholder="Tu nombre">
+                    </div>
+                    <div class="form-row">
+                        <label for="cliente-solicitud-correo">Correo electrónico</label>
+                        <input id="cliente-solicitud-correo" class="input-box" type="email" maxlength="150" autocomplete="email" placeholder="nombre@correo.com">
+                    </div>
+                    <div class="form-row">
+                        <label for="cliente-solicitud-telefono">Teléfono</label>
+                        <input id="cliente-solicitud-telefono" class="input-box" type="tel" maxlength="30" autocomplete="tel" placeholder="Tu número de contacto">
+                    </div>
+                    <div class="form-row">
+                        <label for="cliente-solicitud-mensaje">¿Hay algo más que quieras contarnos? (opcional)</label>
+                        <textarea id="cliente-solicitud-mensaje" class="input-box" rows="4" maxlength="1000" placeholder="Cuéntanos tus fechas o dudas..."></textarea>
+                    </div>
+                    <button id="btn-enviar-solicitud" class="btn-solid-blue" type="button" onclick="enviarSolicitudCliente()">Enviar solicitud</button>
+                </div>
+                <div id="solicitud-confirmacion" class="caja-sugerido-ia oculto" style="padding:1.5rem; margin-top:1rem;">
+                    <h2 style="color:var(--azul-principal); margin-bottom:.5rem;">¡Gracias por tu interés!</h2>
+                    <p>Tu solicitud fue recibida. Un asesor se pondrá en contacto contigo pronto.</p>
+                    <button class="btn-solid-blue" style="margin-top:1rem;" onclick="mostrarVista('home')">Volver al inicio</button>
                 </div>
             </div>
         </section>
@@ -888,7 +1459,7 @@
         <!-- PANTALLA 02: LOGIN -->
         <section id="vista-login" class="oculto">
             <div class="caja-login-centrada">
-                <h1>Empresa de viajes</h1>
+                <img class="login-brand" src="/static/img/logo-rumbalia.png" alt="RUMBALIA">
                 <h2>Iniciar sesión</h2>
                 
                 <div class="form-row">
@@ -905,7 +1476,24 @@
 
                 <button class="btn-solid-blue" id="btn-login-submit" onclick="ejecutarLogin()">Ingresar</button>
                 
-                <button class="btn-outline-blue proximamente" style="margin-top:0.75rem;" title="Disponible en el Sprint 2">Registrarse</button>
+                <button class="btn-outline-blue" style="margin-top:0.75rem;" onclick="mostrarVista('registro')">Crear una cuenta</button>
+            </div>
+        </section>
+
+        <!-- REGISTRO PÚBLICO DE CLIENTES -->
+        <section id="vista-registro" class="oculto">
+            <div class="caja-login-centrada">
+                <img class="login-brand" src="/static/img/logo-rumbalia.png" alt="RUMBALIA">
+                <h2>Crear cuenta</h2>
+                <p style="color:var(--texto-gris);margin-bottom:1.2rem;">Regístrate para disfrutar de una experiencia más personalizada.</p>
+                <div class="form-row"><label for="registro-nombre">Nombre completo</label><input id="registro-nombre" class="input-box" type="text" maxlength="100" autocomplete="name" placeholder="Tu nombre completo"></div>
+                <div class="form-row"><label for="registro-correo">Correo electrónico</label><input id="registro-correo" class="input-box" type="email" maxlength="100" autocomplete="email" placeholder="nombre@correo.com"></div>
+                <div class="form-row"><label for="registro-contrasena">Contraseña</label><input id="registro-contrasena" class="input-box" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>
+                <div class="form-row"><label for="registro-confirmar">Confirmar contraseña</label><input id="registro-confirmar" class="input-box" type="password" maxlength="128" autocomplete="new-password" placeholder="Repite tu contraseña"></div>
+                <label style="display:flex;gap:.55rem;align-items:flex-start;font-size:.9rem;margin:.6rem 0 1rem;"><input id="registro-terminos" type="checkbox" style="margin-top:.2rem;"> Acepto el tratamiento de mis datos para la gestión de mi cuenta y solicitudes.</label>
+                <button class="btn-solid-blue" id="btn-registro-submit" type="button" onclick="ejecutarRegistro()">Crear mi cuenta</button>
+                <p style="margin-top:1rem;text-align:center;color:var(--texto-gris);">¿Ya tienes cuenta? <a href="#" onclick="mostrarVista('login');return false;">Inicia sesión</a></p>
+                <button class="btn-outline-blue" style="margin-top:.5rem;" onclick="mostrarVista('home')">Volver al inicio</button>
             </div>
         </section>
 
@@ -916,6 +1504,20 @@
                 <a class="btn-crear-nuevo" onclick="mostrarVista('asesor-crear')">+ Crear nuevo plan</a>
             </div>
             <div id="contenedor-mis-planes"></div>
+        </section>
+
+        <!-- SOLICITUDES DE CONTACTO PARA EL ASESOR -->
+        <section id="vista-asesor-solicitudes" class="oculto">
+            <h1 class="titulo-seccion">Solicitudes de clientes</h1>
+            <p style="color:var(--texto-gris); margin-bottom:1.25rem;">
+                Personas interesadas en tus planes publicados.
+            </p>
+            <div id="contenedor-solicitudes-asesor"></div>
+            <div class="card-formulario" style="margin-top:1.5rem;padding:1.1rem;border:1px solid var(--gris-borde);border-radius:14px;background:#fff;">
+                <h2 style="font-size:1.1rem;color:var(--azul-principal);margin:0 0 .25rem;">Solicitudes archivadas</h2>
+                <p style="color:var(--texto-gris);margin:.2rem 0 1rem;">Historial de solicitudes que retiraste de tu bandeja.</p>
+                <div id="historial-solicitudes-asesor"></div>
+            </div>
         </section>
 
         <!-- PANTALLA 06: FORMULARIO CREAR PLAN -->
@@ -1011,7 +1613,34 @@
         <!-- PANTALLA 07: REVISIÓN DE PROPUESTA IA -->
         <section id="vista-asesor-resultado-ia" class="oculto">
             <h1 class="titulo-seccion" id="titulo-ia-resultado">San Andrés · 5 días</h1>
+            <div id="editar-aviso-rechazo" class="aviso-rechazo-asesor oculto" role="alert" aria-live="polite">
+                <div class="aviso-rechazo-encabezado"><span aria-hidden="true">!</span><strong>Este plan fue rechazado y necesita correcciones</strong></div>
+                <p>Observaciones del administrador:</p>
+                <div id="editar-motivo-rechazo" class="aviso-rechazo-motivo"></div>
+                <small>Realiza los ajustes solicitados y vuelve a enviar el plan a revisión.</small>
+            </div>
             
+            <div class="form-crear-container" style="margin-bottom:1.5rem;">
+                <h2 class="titulo-seccion" style="font-size:1.2rem;">Imagen del plan</h2>
+                <p style="color:var(--texto-gris); margin-bottom:1rem;">
+                    Puedes conservar la imagen actual o seleccionar una nueva fotografía para este plan.
+                </p>
+                <img id="editar-imagen-preview" src="" alt="Imagen actual del plan"
+                     style="display:none; width:100%; max-width:420px; height:220px; object-fit:cover; border-radius:14px; margin-bottom:1rem;"
+                     onerror="this.style.display='none'">
+                <div class="form-row">
+                    <label for="editar-imagen">Cambiar fotografía</label>
+                    <input type="file" id="editar-imagen" class="input-box" accept=".jpg,.jpeg,.png,.webp">
+                    <small>Formatos JPG, PNG o WEBP. Máximo 5 MB. El cambio solo afecta este plan.</small>
+                    <div class="form-row">
+                        <label for="editar-galeria-imagenes">Agregar fotos a la galería</label>
+                        <input type="file" id="editar-galeria-imagenes" class="input-box" accept=".jpg,.jpeg,.png,.webp" multiple>
+                        <small>Puedes seleccionar hasta 8 fotos por carga. JPG, PNG o WEBP; máximo 5 MB cada una.</small>
+                        <div id="editar-galeria-preview" class="galeria-miniaturas"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="caja-sugerido-ia">
                 <div class="header-ia">SUGERIDO POR IA · según destino, presupuesto e intereses</div>
                 <div class="grid-dias-ia" id="contenedor-dias-ia"></div>
@@ -1057,7 +1686,7 @@
             </div>
 
 
-            <div class="form-row-2col" style="margin-bottom: 2rem;">
+            <div class="form-row-2col" style="margin-bottom: 1rem;">
                 <div class="form-row">
                     <label>Costo estimado</label>
                     <input type="text" id="ia-costo-input" class="input-box" value="$ 0 COP">
@@ -1066,6 +1695,16 @@
                     <label>Estado</label>
                     <input type="text" class="input-box" value="Borrador" readonly>
                 </div>
+            </div>
+            <div class="form-oferta">
+                <h3>Promoción del plan (opcional)</h3>
+                <p style="color:var(--texto-gris);margin-bottom:.8rem;">Si deseas ofrecer un descuento, define el porcentaje y su vigencia. La oferta solo aparecerá cuando el plan esté publicado y dentro de estas fechas.</p>
+                <div class="form-row-2col">
+                    <div class="form-row"><label for="plan-descuento">Descuento (%)</label><input type="number" id="plan-descuento" class="input-box" min="0" max="90" step="0.5" value="0" placeholder="Ej. 15"></div>
+                    <div class="form-row"><label for="oferta-inicio">Fecha de inicio</label><input type="date" id="oferta-inicio" class="input-box"></div>
+                </div>
+                <div class="form-row"><label for="oferta-fin">Fecha de finalización</label><input type="date" id="oferta-fin" class="input-box"></div>
+                <small style="color:var(--texto-gris);">Usa 0% para quitar la promoción. El precio base no se modifica.</small>
             </div>
 
             <div class="grid-acciones-ia">
@@ -1093,8 +1732,48 @@
             <div id="contenedor-pendientes-admin"></div>
         </section>
 
+        <section id="vista-admin-usuarios" class="oculto">
+            <h1 class="titulo-seccion">Usuarios</h1>
+            <p class="texto-intro-publico">Crea y administra las cuentas de asesores y administradores.</p>
+            <div class="card-formulario" style="margin:1.2rem 0;padding:1.2rem;border:1px solid var(--gris-borde);border-radius:16px;background:#fff;">
+                <h2 style="font-size:1.15rem;margin-bottom:1rem;color:var(--azul-principal);">Crear usuario interno</h2>
+                <form id="form-admin-crear-usuario" class="form-grid" onsubmit="crearUsuarioAdmin(event)">
+                    <div class="form-row"><label for="admin-nuevo-nombre">Nombre completo</label><input id="admin-nuevo-nombre" class="input-box" required minlength="3" maxlength="100"></div>
+                    <div class="form-row"><label for="admin-nuevo-correo">Correo electrónico</label><input id="admin-nuevo-correo" type="email" class="input-box" required maxlength="100"></div>
+                    <div class="form-row"><label for="admin-nuevo-password">Contraseña temporal</label><input id="admin-nuevo-password" type="password" class="input-box" required minlength="8" maxlength="128" autocomplete="new-password"></div>
+                    <div class="form-row"><label for="admin-nuevo-rol">Tipo de cuenta</label><select id="admin-nuevo-rol" class="input-box" required><option value="asesor">Asesor</option><option value="administrador">Administrador</option></select></div>
+                    <div><button type="submit" class="btn-solid-blue">Crear usuario</button></div>
+                </form>
+            </div>
+            <h2 style="font-size:1.15rem;margin:1.5rem 0 .8rem;color:var(--azul-principal);">Cuentas registradas</h2>
+            <div id="admin-lista-usuarios"></div>
+        </section>
+
+        <section id="vista-admin-reportes" class="oculto">
+            <h1 class="titulo-seccion">Reportes generales</h1>
+            <p class="texto-intro-publico">Resumen de la actividad de planes, usuarios y solicitudes.</p>
+            <div id="admin-reportes-contenido"></div>
+        </section>
+
+        <section id="vista-asesor-reportes" class="oculto">
+            <h1 class="titulo-seccion">Mis reportes</h1>
+            <p class="texto-intro-publico">Resumen del rendimiento de tus planes y solicitudes.</p>
+            <div id="asesor-reportes-contenido"></div>
+        </section>
+
+        <section id="vista-admin-solicitudes" class="oculto">
+            <h1 class="titulo-seccion">Solicitudes de clientes</h1>
+            <p class="texto-intro-publico">Consulta las solicitudes recibidas en todos los planes.</p>
+            <div id="admin-solicitudes-contenido"></div>
+            <div class="card-formulario" style="margin-top:1.5rem;padding:1.1rem;border:1px solid var(--gris-borde);border-radius:14px;background:#fff;">
+                <h2 style="font-size:1.1rem;color:var(--azul-principal);margin:0 0 .25rem;">Solicitudes archivadas</h2>
+                <p style="color:var(--texto-gris);margin:.2rem 0 1rem;">Historial general de solicitudes archivadas.</p>
+                <div id="admin-solicitudes-archivadas"></div>
+            </div>
+        </section>
+
         <section id="vista-admin-revision" class="oculto">
-            <button class="btn-solid-blue" onclick="mostrarVista('admin-panel')">← Volver al panel</button>
+            <button class="btn-solid-blue revision-back" onclick="mostrarVista('admin-panel')">← Volver al panel</button>
             <h1 class="titulo-seccion" id="admin-revision-titulo">Revisión del plan</h1>
             <div class="grid-detalle-plan">
                 <div class="detalle-left">
@@ -1105,7 +1784,7 @@
                     <h3>No incluye</h3><p id="admin-revision-no-incluye"></p>
                 </div>
                 <div class="detalle-right">
-                    <img id="admin-revision-img" src="" alt="Imagen del destino" onerror="usarFallbackImg(this, 'Destino turístico')">
+                    <div class="galeria-plan" id="admin-revision-galeria" aria-label="Galería de fotografías para revisión"></div>
                     <p id="admin-revision-asesor" class="desc-text"></p>
                     <div class="caja-rechazo">
                         <label for="admin-motivo-rechazo"><strong>Observación</strong> (opcional al rechazar)</label>
@@ -1118,11 +1797,6 @@
                 </div>
             </div>
         </section>
-        <section id="vista-admin-revision" class="oculto">
-            <h1 class="titulo-seccion">Revisión del plan turístico</h1>
-
-            <div id="contenido-revision-admin"></div>
-        </section>
     </main>
 
     <script>
@@ -1131,6 +1805,7 @@
         let idPlanActual = null;
         let planActualObjeto = null;
         let planRevisionActual = null;
+        let planDetalleActual = null;
 
         document.addEventListener("DOMContentLoaded", async () => {
             await cargarSesion();
@@ -1185,17 +1860,32 @@
             if (!estadoSesion) {
                 nav.innerHTML = `
                     <a onclick="mostrarVista('home')" class="activo">Reservar</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Experiencias</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Ofertas</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Nosotros</a>
+                    <a onclick="mostrarVista('experiencias')">Experiencias</a>
+                    <a onclick="mostrarVista('ofertas')">Ofertas</a>
+                    <a onclick="mostrarVista('nosotros')">Nosotros</a>
                     <button class="btn-nav-login" onclick="mostrarVista('login')">Iniciar sesión</button>
+                `;
+            } else if (estadoSesion.rol === 'cliente') {
+                nav.innerHTML = `
+                    <a onclick="mostrarVista('home')">Reservar</a>
+                    <a onclick="mostrarVista('experiencias')">Experiencias</a>
+                    <a onclick="mostrarVista('ofertas')">Ofertas</a>
+                    <a onclick="mostrarVista('nosotros')">Nosotros</a>
+                    <div class="avatar-wrap">
+                        <div class="user-avatar" title="${estadoSesion.nombre}" onclick="toggleMenuUsuario(event)">👤</div>
+                        <div class="menu-usuario oculto" id="dropdown-usuario">
+                            <div class="nombre-usuario"><strong>${estadoSesion.nombre}</strong><br><small>Cliente</small></div>
+                            <hr style="border:none; border-top:1px solid #EEE; margin:0.2rem 0;">
+                            <button onclick="logout()">Cerrar sesión</button>
+                        </div>
+                    </div>
                 `;
             } else if (estadoSesion.rol === 'asesor') {
                 nav.innerHTML = `
-                    <a onclick="mostrarVista('asesor-mis-planes')" class="activo">Mis planes</a>
-                    <a onclick="mostrarVista('asesor-crear')">Crear plan</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Reportes</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Nosotros</a>
+                    <a data-vista="asesor-mis-planes" onclick="mostrarVista('asesor-mis-planes')" class="activo">Mis planes</a>
+                    <a data-vista="asesor-crear" onclick="mostrarVista('asesor-crear')">Crear plan</a>
+                    <a data-vista="asesor-solicitudes" onclick="mostrarVista('asesor-solicitudes')">Solicitudes</a>
+                    <a data-vista="asesor-reportes" onclick="mostrarVista('asesor-reportes')">Reportes</a>
                     <div class="avatar-wrap">
                         <div class="user-avatar" title="${estadoSesion.nombre}" onclick="toggleMenuUsuario(event)">👤</div>
                         <div class="menu-usuario oculto" id="dropdown-usuario">
@@ -1207,10 +1897,11 @@
                 `;
             } else if (estadoSesion.rol === 'administrador') {
                 nav.innerHTML = `
-                    <a onclick="mostrarVista('admin-panel')" class="activo">Panel</a>
-                    <a onclick="mostrarVista('home')">Catálogo</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Reportes</a>
-                    <a class="proximamente" title="Disponible en el Sprint 2" aria-disabled="true">Usuarios</a>
+                    <a data-vista="admin-panel" onclick="mostrarVista('admin-panel')" class="activo">Panel</a>
+                    <a data-vista="home" onclick="mostrarVista('home')">Catálogo</a>
+                    <a data-vista="admin-reportes" onclick="mostrarVista('admin-reportes')">Reportes</a>
+                    <a data-vista="admin-usuarios" onclick="mostrarVista('admin-usuarios')">Usuarios</a>
+                    <a data-vista="admin-solicitudes" onclick="mostrarVista('admin-solicitudes')">Solicitudes</a>
                     <div class="avatar-wrap">
                         <div class="user-avatar" title="${estadoSesion.nombre}" onclick="toggleMenuUsuario(event)">👤</div>
                         <div class="menu-usuario oculto" id="dropdown-usuario">
@@ -1223,33 +1914,150 @@
             }
         }
 
+        // Prepara un formulario completamente nuevo. No debe heredar valores
+        // del plan que el asesor creó o editó anteriormente.
+        function prepararNuevoPlan() {
+            const idsTexto = [
+                "crear-destino", "crear-pais", "crear-duracion",
+                "crear-presupuesto", "crear-tipo", "crear-intereses",
+                "crear-incluye", "crear-no-incluye"
+            ];
+            idsTexto.forEach(id => {
+                const campo = document.getElementById(id);
+                if (campo) campo.value = "";
+            });
+
+            const continente = document.getElementById("crear-continente");
+            if (continente) continente.value = "";
+
+            ["crear-imagen", "editar-imagen", "editar-galeria-imagenes"].forEach(id => {
+                const campo = document.getElementById(id);
+                if (campo) campo.value = "";
+            });
+
+            const vistaPreviaDestino = document.getElementById("vista-previa-destino");
+            if (vistaPreviaDestino) vistaPreviaDestino.innerHTML = "";
+
+            const vistaPreviaEdicion = document.getElementById("editar-imagen-preview");
+            if (vistaPreviaEdicion) {
+                vistaPreviaEdicion.removeAttribute("src");
+                vistaPreviaEdicion.style.display = "none";
+            }
+
+            const vistaPreviaGaleria = document.getElementById("editar-galeria-preview");
+            if (vistaPreviaGaleria) vistaPreviaGaleria.innerHTML = "";
+
+            const contenedorDias = document.getElementById("contenedor-dias-ia");
+            if (contenedorDias) contenedorDias.innerHTML = "";
+
+            const costo = document.getElementById("ia-costo-input");
+            if (costo) costo.value = "$ 0 COP";
+            ["plan-descuento", "oferta-inicio", "oferta-fin"].forEach(id => {
+                const campo = document.getElementById(id); if (campo) campo.value = id === "plan-descuento" ? "0" : "";
+            });
+
+            const titulo = document.getElementById("titulo-ia-resultado");
+            if (titulo) titulo.textContent = "Nuevo plan turístico";
+
+            const avisoRechazo = document.getElementById("editar-aviso-rechazo");
+            if (avisoRechazo) avisoRechazo.classList.add("oculto");
+            const textoRechazo = document.getElementById("editar-motivo-rechazo");
+            if (textoRechazo) textoRechazo.textContent = "";
+
+            planActualObjeto = null;
+            idPlanActual = null;
+            limpiarErroresFormulario();
+        }
+
         function mostrarVista(idVista) {
+            if (idVista === "asesor-crear") prepararNuevoPlan();
             limpiarErroresFormulario();
             const secciones = [
-                'vista-home', 'vista-listado-planes', 'vista-detalle-plan', 
-                'vista-login', 'vista-asesor-mis-planes', 'vista-asesor-crear', 
-                'vista-asesor-resultado-ia', 'vista-admin-panel', 'vista-admin-revision'
+                'vista-home', 'vista-experiencias', 'vista-ofertas', 'vista-nosotros', 'vista-listado-planes', 'vista-detalle-plan',
+                'vista-cliente-solicitud', 'vista-login', 'vista-registro', 'vista-asesor-mis-planes',
+                'vista-asesor-solicitudes', 'vista-asesor-reportes', 'vista-admin-solicitudes', 'vista-asesor-crear',
+                'vista-asesor-resultado-ia', 'vista-admin-panel', 'vista-admin-usuarios', 'vista-admin-reportes', 'vista-admin-revision'
             ];
             secciones.forEach(s => document.getElementById(s).classList.add('oculto'));
             
             document.getElementById(`vista-${idVista}`).classList.remove('oculto');
+            document.querySelectorAll('nav.menu-nav a[data-vista]').forEach(a => a.classList.toggle('activo', a.dataset.vista === idVista));
 
             if (idVista === 'asesor-mis-planes') cargarPlanesAsesor();
+            if (idVista === 'asesor-solicitudes') cargarSolicitudesAsesor();
+            if (idVista === 'asesor-reportes') cargarReportesAsesor();
+            if (idVista === 'admin-solicitudes') cargarSolicitudesAdmin();
             if (idVista === 'admin-panel') cargarPlanesAdmin();
+            if (idVista === 'admin-usuarios') cargarUsuariosAdmin();
+            if (idVista === 'admin-reportes') cargarReportesAdmin();
+            if (idVista === 'experiencias') cargarExperiencias('');
+            if (idVista === 'ofertas') cargarTodosLosPlanes();
         }
+
+        let temporizadorToast = null;
+        let resolverModalConfirmacion = null;
 
         function mostrarToast(msg, esError = false) {
             const t = document.getElementById("toast");
             t.innerText = msg;
-            if (esError) t.classList.add("error");
-            else t.classList.remove("error");
+            t.classList.toggle("error", Boolean(esError));
             t.style.display = "block";
-            setTimeout(() => { t.style.display = "none"; }, 3500);
+            if (temporizadorToast) clearTimeout(temporizadorToast);
+            temporizadorToast = setTimeout(() => { t.style.display = "none"; }, 3800);
         }
+
+        function confirmarAccion(titulo, mensaje, textoAceptar = "Sí, eliminar") {
+            const modal = document.getElementById("modal-confirmacion");
+            document.getElementById("modal-confirmacion-titulo").textContent = titulo;
+            document.getElementById("modal-confirmacion-mensaje").textContent = mensaje;
+            const boton = modal.querySelector(".btn-confirmar-eliminar");
+            boton.textContent = textoAceptar;
+            modal.classList.add("visible");
+            boton.focus();
+            return new Promise(resolve => { resolverModalConfirmacion = resolve; });
+        }
+
+        function resolverConfirmacion(aceptar) {
+            const modal = document.getElementById("modal-confirmacion");
+            modal.classList.remove("visible");
+            if (resolverModalConfirmacion) {
+                resolverModalConfirmacion(Boolean(aceptar));
+                resolverModalConfirmacion = null;
+            }
+        }
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && document.getElementById("modal-confirmacion")?.classList.contains("visible")) {
+                resolverConfirmacion(false);
+            }
+        });
 
         function limpiarErroresFormulario() {
             document.querySelectorAll(".error-campo").forEach(el => el.innerText = "");
             document.querySelectorAll(".input-box").forEach(el => el.classList.remove("invalido"));
+        }
+
+        // REGISTRO DE CLIENTES
+        async function ejecutarRegistro() {
+            const nombre=document.getElementById('registro-nombre').value.trim();
+            const correo=document.getElementById('registro-correo').value.trim().toLowerCase();
+            const contrasena=document.getElementById('registro-contrasena').value;
+            const confirmar=document.getElementById('registro-confirmar').value;
+            if (!nombre || !correo || !contrasena || !confirmar) return mostrarToast('Completa todos los campos.',true);
+            if (contrasena.length < 8) return mostrarToast('La contraseña debe tener al menos 8 caracteres.',true);
+            if (contrasena !== confirmar) return mostrarToast('Las contraseñas no coinciden.',true);
+            if (!document.getElementById('registro-terminos').checked) return mostrarToast('Debes aceptar el tratamiento de datos.',true);
+            const btn=document.getElementById('btn-registro-submit'); btn.disabled=true;
+            try {
+                const res=await fetch(`${API_URL}/registro`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre,correo,contrasena,acepta_datos:true})});
+                const data=await res.json();
+                if (!res.ok) throw new Error(data.error || 'No fue posible crear la cuenta.');
+                estadoSesion=data.usuario; renderHeaderNav();
+                ['registro-nombre','registro-correo','registro-contrasena','registro-confirmar'].forEach(id=>document.getElementById(id).value='');
+                document.getElementById('registro-terminos').checked=false;
+                mostrarToast('¡Tu cuenta RUMBALIA fue creada!'); mostrarVista('home');
+            } catch(e) { mostrarToast(e.message,true); }
+            finally { btn.disabled=false; }
         }
 
         // LOGIN / LOGOUT
@@ -1310,10 +2118,114 @@
             mostrarVista('home');
         }
 
+        // BÚSQUEDA PÚBLICA: solo consulta planes publicados desde el backend.
+        function construirUrlBusqueda(filtros = {}) {
+            const params = new URLSearchParams();
+            Object.entries(filtros).forEach(([clave, valor]) => {
+                if (valor !== undefined && valor !== null && String(valor).trim() !== "") params.set(clave, String(valor).trim());
+            });
+            return `${API_URL}/planes/buscar?${params.toString()}`;
+        }
+
+        function renderizarTarjetasPlanes(contenedorId, planes, mensajeVacio) {
+            const cont = document.getElementById(contenedorId);
+            if (!cont) return;
+            cont.innerHTML = "";
+            if (!Array.isArray(planes) || planes.length === 0) {
+                cont.innerHTML = `<p class="mensaje-sin-resultados">${escapeHTML(mensajeVacio || "No encontramos planes con esos criterios.")}</p>`;
+                return;
+            }
+            planes.forEach(p => {
+                const tarjeta = document.createElement("article");
+                tarjeta.className = "card-plan";
+                tarjeta.tabIndex = 0;
+                tarjeta.setAttribute("role", "button");
+                tarjeta.setAttribute("aria-label", `Ver ${p.nombre} en ${p.destino}, ${p.pais}`);
+                tarjeta.addEventListener("click", () => verDetallePlan(p.id_plan));
+                tarjeta.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); verDetallePlan(p.id_plan); } });
+                const foto = document.createElement("img");
+                foto.src = p.imagen_url || "";
+                foto.alt = `Fotografía de ${p.destino}, ${p.pais}`;
+                foto.onerror = () => usarFallbackImg(foto, p.destino || "Destino");
+                const info = document.createElement("div");
+                info.className = "card-plan-info";
+                const titulo = document.createElement("h3"); titulo.textContent = p.nombre;
+                const lugar = document.createElement("span"); lugar.className = "card-plan-lugar"; lugar.textContent = `${p.destino}, ${p.pais}`;
+                const precio = document.createElement("p");
+                const descuento = Number(p.descuento_porcentaje || 0);
+                const precioBase = Number(p.costo_estimado || 0);
+                if (descuento > 0) {
+                    const etiqueta = document.createElement("span"); etiqueta.className = "etiqueta-descuento"; etiqueta.textContent = `${descuento}% de descuento`;
+                    const anterior = document.createElement("span"); anterior.className = "precio-oferta-anterior"; anterior.textContent = `${precioBase.toLocaleString("es-CO")} COP`;
+                    const final = document.createElement("strong"); final.textContent = `${Math.round(precioBase * (1 - descuento / 100)).toLocaleString("es-CO")} COP`;
+                    precio.append(anterior, final); info.append(etiqueta);
+                } else { precio.textContent = `Desde ${precioBase.toLocaleString("es-CO")} COP`; }
+                const duracion = document.createElement("small"); duracion.textContent = ` · ${p.duracion_dias} días`;
+                precio.append(duracion); info.append(titulo, lugar, precio); tarjeta.append(foto, info); cont.appendChild(tarjeta);
+            });
+        }
+
+        async function buscarPlanes() {
+            const duracion = document.getElementById("buscar-duracion")?.value || "";
+            const [duracionMin, duracionMax] = duracion ? duracion.split("-") : ["", ""];
+            const filtros = {
+                destino: document.getElementById("buscar-destino")?.value,
+                pais: document.getElementById("buscar-pais")?.value,
+                interes: document.getElementById("buscar-interes")?.value,
+                presupuesto_max: document.getElementById("buscar-presupuesto")?.value,
+                duracion_min: duracionMin,
+                duracion_max: duracionMax
+            };
+            try {
+                const res = await fetch(construirUrlBusqueda(filtros));
+                const planes = await res.json();
+                if (!res.ok) throw new Error(planes.error || "No se pudo realizar la búsqueda.");
+                document.getElementById("titulo-continente-planes").textContent = "Resultados de búsqueda";
+                renderizarTarjetasPlanes("contenedor-grid-planes", planes, "No encontramos planes publicados con esos filtros. Prueba con otro destino o amplía tu presupuesto.");
+                mostrarVista("listado-planes");
+            } catch (error) { mostrarToast(error.message, true); }
+        }
+
+        async function cargarExperiencias(interes) {
+            const titulo = document.getElementById("titulo-experiencias-resultados");
+            if (titulo) titulo.textContent = interes ? `Experiencias de ${interes}` : "Todos los planes publicados";
+            try {
+                const res = await fetch(construirUrlBusqueda({interes}));
+                const planes = await res.json();
+                if (!res.ok) throw new Error(planes.error || "No se pudieron cargar las experiencias.");
+                renderizarTarjetasPlanes("experiencias-resultados", planes, "Todavía no hay planes publicados para esta experiencia.");
+            } catch (error) { mostrarToast(error.message, true); }
+        }
+
+        async function cargarTodosLosPlanes() {
+            const cont = document.getElementById("ofertas-planes-disponibles");
+            const aviso = document.getElementById("ofertas-sin-promociones");
+            const titulo = document.getElementById("titulo-ofertas-resultados");
+            try {
+                const res = await fetch(`${API_URL}/planes/ofertas`);
+                const ofertas = await res.json();
+                if (!res.ok) throw new Error(ofertas.error || "No se pudieron cargar las ofertas.");
+                if (ofertas.length) {
+                    if (aviso) aviso.classList.add("oculto");
+                    if (titulo) titulo.textContent = "Ofertas vigentes";
+                    renderizarTarjetasPlanes("ofertas-planes-disponibles", ofertas, "No hay ofertas activas.");
+                    return;
+                }
+                if (aviso) aviso.classList.remove("oculto");
+                if (titulo) titulo.textContent = "Planes publicados para descubrir";
+                const todosRes = await fetch(construirUrlBusqueda());
+                const todos = await todosRes.json();
+                if (!todosRes.ok) throw new Error(todos.error || "No se pudieron cargar los planes.");
+                renderizarTarjetasPlanes("ofertas-planes-disponibles", todos, "Todavía no hay planes publicados.");
+            } catch (error) { mostrarToast(error.message, true); }
+        }
+
         // CLIENTE: LISTADO POR CONTINENTE
         async function cargarPlanesContinente(continente) {
             document.getElementById("titulo-continente-planes").innerText = `Planes en ${continente}`;
-            const res = await fetch(`${API_URL}/planes?continente=${continente}`);
+            const res = await fetch(
+                `${API_URL}/planes?continente=${encodeURIComponent(continente)}`
+            );
             const planes = await res.json();
             
             const cont = document.getElementById("contenedor-grid-planes");
@@ -1327,8 +2239,9 @@
                         <div class="card-plan" onclick="verDetallePlan(${p.id_plan})">
                             <img src="${p.imagen_url || ''}" alt="${p.nombre}" onerror="usarFallbackImg(this, '${p.nombre}')">
                             <div class="card-plan-info">
-                                <h3>${p.nombre}</h3>
-                                <p>Desde ${Number(p.costo_estimado).toLocaleString("es-CO")} COP</p>
+                                <h3>${escapeHTML(p.nombre)}</h3>
+                                <span class="card-plan-lugar">${escapeHTML(p.destino)}, ${escapeHTML(p.pais || "")}</span>
+                                <p>Desde ${Number(p.costo_estimado).toLocaleString("es-CO")} COP · ${p.duracion_dias} días</p>
                             </div>
                         </div>
                     `;
@@ -1345,33 +2258,274 @@
                 console.log("DATOS DEL PLAN:", p);
                 console.log("ITINERARIO RECIBIDO:", p.itinerario);
                 if (!res.ok) throw new Error(p.error || "No se pudo cargar el plan.");
+                planDetalleActual = p;
                 document.getElementById("det-titulo").innerText = p.nombre;
                 document.getElementById("det-precio").innerText = `Precio: desde $${Number(p.costo_estimado).toLocaleString("es-CO")} COP`;
                 document.getElementById("det-sub").innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días`;
                 document.getElementById("det-descripcion").innerText = `Experiencia en ${p.destino}, diseñada para un viajero tipo ${p.datos_viajero.tipo_viajero}. Intereses: ${p.datos_viajero.intereses}.`;
-                const img = document.getElementById("det-img");
-                if (img) {
-                    const fallback = img.nextElementSibling;
-
-                    if (fallback && fallback.classList.contains("img-fallback")) {
-                        fallback.remove();
-                    }
-
-                    img.style.display = "";
-                    img.onerror = () => usarFallbackImg(img, p.destino);
-
-                    if (p.imagen_url) {
-                        img.src = p.imagen_url;
-                    } else {
-                        img.removeAttribute("src");
-                        usarFallbackImg(img, p.destino);
-                    }
-                }
+                renderizarGaleriaPlan(p);
                 document.getElementById("det-incluye").innerHTML = `<li>${escapeHTML(p.incluye || 'Información no especificada')}</li>`;
                 document.getElementById("det-no-incluye").innerHTML = `<li>${escapeHTML(p.no_incluye || 'Información no especificada')}</li>`;
                 document.getElementById("det-itinerario").innerHTML = (p.itinerario?.dias || []).map(d => `<div class="dia-item"><h4>Día ${d.numero_dia}</h4><p>${escapeHTML(d.descripcion_resumen)}</p></div>`).join('') || '<p>Itinerario no disponible.</p>';
                 mostrarVista('detalle-plan');
             } catch (error) { mostrarToast(error.message, true); }
+        }
+
+        function normalizarUrlImagen(url) {
+            if (!url) return "";
+            const limpia = String(url).trim().replace(/\\/g, "/");
+            if (/^https?:\/\//i.test(limpia) || limpia.startsWith("data:image/")) return limpia;
+            return limpia.startsWith("/") ? limpia : `/${limpia.replace(/^\.\//, "")}`;
+        }
+
+        function renderizarGaleriaEn(contenedorId, plan, clave) {
+            const contenedor = document.getElementById(contenedorId);
+            if (!contenedor) return;
+            if (window.__galeriaTimers?.[clave]) clearInterval(window.__galeriaTimers[clave]);
+            window.__galeriaTimers = window.__galeriaTimers || {};
+
+            const fotos = [...new Set([plan.imagen_url, ...(Array.isArray(plan.imagenes) ? plan.imagenes : [])]
+                .map(normalizarUrlImagen).filter(Boolean))];
+            contenedor.replaceChildren();
+            contenedor.classList.add("galeria-plan");
+
+            const visor = document.createElement("div");
+            visor.className = "galeria-visor";
+            const imagen = document.createElement("img");
+            imagen.alt = `Fotografía de ${plan.destino || plan.nombre || "el plan"}`;
+            imagen.loading = "eager";
+            const fallback = document.createElement("div");
+            fallback.className = "galeria-fallback";
+            fallback.innerHTML = '<span style="font-size:2rem">✈</span><span>Fotografías del plan</span>';
+            imagen.addEventListener("error", () => {
+                imagen.style.display = "none";
+                fallback.classList.add("visible");
+            });
+            imagen.addEventListener("load", () => {
+                imagen.style.display = "block";
+                fallback.classList.remove("visible");
+            });
+            visor.append(imagen, fallback);
+
+            const miniaturas = document.createElement("div");
+            miniaturas.className = "galeria-miniaturas";
+            miniaturas.setAttribute("aria-label", "Seleccionar fotografía");
+            const pie = document.createElement("div");
+            pie.className = "galeria-pie";
+            const contador = document.createElement("span");
+            const ampliar = document.createElement("button");
+            ampliar.type = "button";
+            ampliar.className = "galeria-abrir";
+            ampliar.textContent = "Ver imagen ampliada ↗";
+            pie.append(contador, ampliar);
+
+            let indiceActual = 0;
+            const botones = [];
+            const anterior = document.createElement("button");
+            anterior.type = "button"; anterior.className = "galeria-flecha anterior";
+            anterior.setAttribute("aria-label", "Fotografía anterior"); anterior.innerHTML = "&#8249;";
+            const siguiente = document.createElement("button");
+            siguiente.type = "button"; siguiente.className = "galeria-flecha siguiente";
+            siguiente.setAttribute("aria-label", "Fotografía siguiente"); siguiente.innerHTML = "&#8250;";
+
+            function seleccionar(indice) {
+                if (!fotos.length) return;
+                indiceActual = (indice + fotos.length) % fotos.length;
+                fallback.classList.remove("visible");
+                imagen.style.display = "block";
+                imagen.src = fotos[indiceActual];
+                contador.textContent = `${indiceActual + 1} de ${fotos.length} fotografías`;
+                botones.forEach((boton, i) => {
+                    boton.classList.toggle("activa", i === indiceActual);
+                    boton.setAttribute("aria-pressed", i === indiceActual ? "true" : "false");
+                });
+                botones[indiceActual]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+            }
+
+            if (!fotos.length) {
+                imagen.style.display = "none";
+                fallback.classList.add("visible");
+                visor.append(fallback);
+                contenedor.append(visor);
+                return;
+            }
+
+            fotos.forEach((url, indice) => {
+                const boton = document.createElement("button");
+                boton.type = "button";
+                boton.setAttribute("aria-label", `Ver fotografía ${indice + 1}`);
+                const miniatura = document.createElement("img");
+                miniatura.src = url; miniatura.alt = ""; miniatura.loading = "lazy";
+                miniatura.onerror = () => { boton.style.display = "none"; };
+                boton.append(miniatura);
+                boton.addEventListener("click", () => seleccionar(indice));
+                botones.push(boton); miniaturas.append(boton);
+            });
+
+            if (fotos.length > 1) {
+                anterior.addEventListener("click", () => seleccionar(indiceActual - 1));
+                siguiente.addEventListener("click", () => seleccionar(indiceActual + 1));
+                visor.append(anterior, siguiente);
+            }
+            ampliar.addEventListener("click", () => {
+                if (imagen.requestFullscreen) imagen.requestFullscreen().catch(() => window.open(imagen.src, "_blank", "noopener"));
+                else window.open(imagen.src, "_blank", "noopener");
+            });
+            imagen.addEventListener("click", () => ampliar.click());
+            contenedor.append(visor, miniaturas, pie);
+            seleccionar(0);
+
+            // Rotación automática discreta; se pausa mientras el usuario interactúa.
+            if (fotos.length > 1) {
+                const iniciar = () => {
+                    if (window.__galeriaTimers[clave]) clearInterval(window.__galeriaTimers[clave]);
+                    window.__galeriaTimers[clave] = setInterval(() => seleccionar(indiceActual + 1), 6000);
+                };
+                const pausar = () => {
+                    if (window.__galeriaTimers[clave]) clearInterval(window.__galeriaTimers[clave]);
+                    window.__galeriaTimers[clave] = null;
+                };
+                contenedor.addEventListener("mouseenter", pausar);
+                contenedor.addEventListener("focusin", pausar);
+                contenedor.addEventListener("mouseleave", iniciar);
+                contenedor.addEventListener("focusout", iniciar);
+                iniciar();
+            }
+        }
+
+        function renderizarGaleriaPlan(plan) {
+            renderizarGaleriaEn("det-galeria", plan, "detalle");
+        }
+
+        async function guardarImagenesGaleria() {
+            const campo = document.getElementById("editar-galeria-imagenes");
+            const archivos = Array.from(campo?.files || []);
+            if (!archivos.length) return;
+            if (archivos.length > 8) throw new Error("Puedes agregar máximo 8 fotos por carga.");
+            const formatos = ["image/jpeg", "image/png", "image/webp"];
+            archivos.forEach(file => {
+                if (!formatos.includes(file.type) || file.size > 5 * 1024 * 1024)
+                    throw new Error("Cada foto debe ser JPG, PNG o WEBP y pesar máximo 5 MB.");
+            });
+            const form = new FormData();
+            archivos.forEach(file => form.append("imagenes", file));
+            const response = await fetch(`${API_URL}/planes/${idPlanActual}/imagenes`, {method:"POST", body:form});
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "No se pudieron guardar las fotos.");
+            planActualObjeto.imagenes = [...(planActualObjeto.imagenes || []), ...(result.imagenes || [])];
+            campo.value = "";
+            mostrarToast(result.mensaje || "Galería actualizada.");
+        }
+
+        function abrirFormularioSolicitud() {
+            if (!planDetalleActual) {
+                mostrarToast("Primero selecciona un plan.", true);
+                return;
+            }
+            document.getElementById("solicitud-plan-nombre").innerText =
+                planDetalleActual.nombre;
+            document.getElementById("formulario-solicitud-cliente").classList.remove("oculto");
+            document.getElementById("solicitud-confirmacion").classList.add("oculto");
+            mostrarVista("cliente-solicitud");
+        }
+
+        async function enviarSolicitudCliente() {
+            if (!planDetalleActual) return;
+
+            const nombre = document.getElementById("cliente-solicitud-nombre").value.trim();
+            const correo = document.getElementById("cliente-solicitud-correo").value.trim();
+            const telefono = document.getElementById("cliente-solicitud-telefono").value.trim();
+            const mensaje = document.getElementById("cliente-solicitud-mensaje").value.trim();
+
+            if (nombre.length < 2 || !correo || !correo.includes("@") ||
+                !telefono || telefono.length < 7) {
+                mostrarToast("Completa nombre, correo válido y teléfono.", true);
+                return;
+            }
+
+            const boton = document.getElementById("btn-enviar-solicitud");
+            boton.disabled = true;
+            try {
+                const respuesta = await fetch(
+                    `${API_URL}/planes/${planDetalleActual.id_plan}/solicitudes`,
+                    {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({nombre, correo, telefono, mensaje})
+                    }
+                );
+                const resultado = await respuesta.json();
+                if (!respuesta.ok) {
+                    throw new Error(resultado.error || "No se pudo enviar la solicitud.");
+                }
+                document.getElementById("formulario-solicitud-cliente").classList.add("oculto");
+                document.getElementById("solicitud-confirmacion").classList.remove("oculto");
+                document.getElementById("cliente-solicitud-nombre").value = "";
+                document.getElementById("cliente-solicitud-correo").value = "";
+                document.getElementById("cliente-solicitud-telefono").value = "";
+                document.getElementById("cliente-solicitud-mensaje").value = "";
+            } catch (error) {
+                mostrarToast(error.message, true);
+            } finally {
+                boton.disabled = false;
+            }
+        }
+
+        let solicitudesAsesorCache = [];
+        function filtrarSolicitudesAsesor() {
+            const estado = document.getElementById('filtro-estado-asesor')?.value || '';
+            const lista = estado ? solicitudesAsesorCache.filter(s => s.estado === estado) : solicitudesAsesorCache;
+            const contenedor = document.getElementById('lista-solicitudes-asesor');
+            if (!contenedor) return;
+            if (!lista.length) { contenedor.innerHTML = '<div class="caja-sugerido-ia" style="padding:1rem;">No hay solicitudes para este filtro.</div>'; return; }
+            contenedor.innerHTML = lista.map(s => `
+                <article class="item-plan-filas tarjeta-solicitud-asesor">
+                    <div class="informacion-solicitud-asesor">
+                        <h3>${escapeHTML(s.nombre)}</h3><p><strong>Plan:</strong> ${escapeHTML(s.nombre_plan)}</p>
+                        <p><strong>Correo:</strong> <a href="mailto:${escapeHTML(s.correo)}">${escapeHTML(s.correo)}</a></p>
+                        <p><strong>Teléfono:</strong> <a href="tel:${escapeHTML(s.telefono)}">${escapeHTML(s.telefono)}</a></p>
+                        <details class="solicitud-detalle"><summary>Ver detalle de la solicitud</summary>
+                            <div class="solicitud-detalle-contenido">
+                                <p><strong>Comentario del cliente</strong><br>${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p>
+                                <p><strong>Fecha de recepción</strong><br>${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p>
+                            </div>
+                        </details>
+                        <br><small style="color:var(--texto-gris);">Última actualización: ${s.fecha_actualizacion ? new Date(s.fecha_actualizacion).toLocaleString('es-CO') : 'Sin cambios'}${s.nombre_actualizador ? ' · por ' + escapeHTML(s.nombre_actualizador) : ''}</small>
+                    </div>
+                    <div class="acciones-solicitud-asesor">
+                        <label class="texto-secundario" for="estado-solicitud-${s.id_solicitud}">Estado</label>
+                        <select id="estado-solicitud-${s.id_solicitud}" class="input-box select-estado-solicitud" onchange="actualizarEstadoSolicitud(${s.id_solicitud},this.value)">
+                            <option value="Nueva" ${s.estado==='Nueva'?'selected':''}>Nueva</option>
+                            <option value="En gestión" ${s.estado==='En gestión'?'selected':''}>En gestión</option>
+                            <option value="Atendida" ${s.estado==='Atendida'?'selected':''}>Atendida</option>
+                        </select>
+                        <button class="btn-outline-blue" type="button" onclick="archivarSolicitud(${s.id_solicitud},'asesor')">Archivar</button>
+                        <button class="btn-delete-action" type="button" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'asesor')">Eliminar</button>
+                    </div>
+                </article>`).join('');
+        }
+
+        async function cargarSolicitudesAsesor() {
+            const contenedor = document.getElementById("contenedor-solicitudes-asesor");
+            if (!contenedor) return;
+            contenedor.innerHTML = "<p>Cargando solicitudes...</p>";
+            try {
+                const respuesta = await fetch(`${API_URL}/asesor/solicitudes`);
+                const solicitudes = await respuesta.json();
+                if (!respuesta.ok) {
+                    throw new Error(solicitudes.error || "No se pudieron cargar las solicitudes.");
+                }
+                solicitudesAsesorCache = solicitudes;
+                const counts = {Nueva:0, 'En gestión':0, Atendida:0};
+                solicitudes.forEach(s => counts[s.estado]=(counts[s.estado]||0)+1);
+                contenedor.innerHTML = `<div class="admin-report-grid" style="margin-bottom:1rem;">${Object.entries(counts).map(([k,v])=>`<article class="admin-report-card"><span>${k}</span><strong>${v}</strong></article>`).join('')}</div>
+                    <div style="max-width:280px;margin-bottom:1rem;"><label for="filtro-estado-asesor">Filtrar por estado</label><select id="filtro-estado-asesor" class="input-box" onchange="filtrarSolicitudesAsesor()"><option value="">Todos los estados</option><option>Nueva</option><option>En gestión</option><option>Atendida</option></select></div>
+                    <div id="lista-solicitudes-asesor"></div>`;
+                filtrarSolicitudesAsesor();
+                await cargarSolicitudesArchivadasAsesor();
+            } catch (error) {
+                contenedor.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
+            }
         }
 
         function escapeHTML(texto) {
@@ -1420,29 +2574,23 @@
                             </span>
                         </div>
 
-                        ${
-                            plan.estado === "Borrador"
-                            ? `
+                        <div class="acciones-plan">
+                            ${plan.estado === "Borrador" ? `
+                                <button type="button" class="btn-editar-borrador" onclick="abrirBorrador(${plan.id_plan})">✏️ Editar</button>
+                            ` : ""}
+                            ${plan.estado === "Publicado" ? `
+                                <button type="button" class="btn-volver-borrador" onclick="volverABorrador(${plan.id_plan})">↩ Volver a borrador</button>
+                            ` : ""}
+
+                            ${["Borrador", "Publicado"].includes(plan.estado) ? `
                                 <button
                                     type="button"
-                                    onclick="abrirBorrador(${plan.id_plan})"
-                                    class="btn-editar-borrador">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path d="M12 20h9"/>
-                                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>
-                                    </svg>
-                                    Editar borrador
+                                    class="btn-eliminar-borrador"
+                                    onclick="eliminarBorrador(${plan.id_plan}, '${escapeHTML(plan.estado)}')">
+                                    🗑 Eliminar
                                 </button>
-                            `
-                            : ""
-                        }
+                            ` : ""}
+                        </div>
                     </div>
                 `).join("");
 
@@ -1452,6 +2600,22 @@
                     <p>${escapeHTML(error.message)}</p>
                 `;
             }
+        }
+
+        async function volverABorrador(idPlan) {
+            const confirmar = await confirmarAccion(
+                "¿Volver el plan a borrador?",
+                "El plan dejará de estar visible para los clientes y las ofertas hasta que realices los cambios y el administrador lo apruebe nuevamente.",
+                "Sí, volver a borrador"
+            );
+            if (!confirmar) return;
+            try {
+                const res = await fetch(`${API_URL}/asesor/planes/${idPlan}/volver-borrador`, {method:"POST"});
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "No se pudo cambiar el estado del plan.");
+                mostrarToast(data.mensaje || "El plan volvió a borrador.");
+                await cargarPlanesAsesor();
+            } catch (e) { mostrarToast(e.message, true); }
         }
 
         async function abrirBorrador(idPlan) {
@@ -1471,6 +2635,16 @@
                 // Recuperar el plan existente.
                 planActualObjeto = plan;
                 idPlanActual = plan.id_plan;
+                mostrarImagenActualEdicion(plan.imagen_url);
+
+                // Mostrar el motivo de la última revisión si el plan fue rechazado.
+                const avisoRechazo = document.getElementById("editar-aviso-rechazo");
+                const textoRechazo = document.getElementById("editar-motivo-rechazo");
+                if (avisoRechazo && textoRechazo) {
+                    const motivo = (plan.motivo_rechazo || "").trim();
+                    textoRechazo.textContent = motivo || "El administrador no dejó una observación específica. Revisa los datos del plan antes de volver a enviarlo.";
+                    avisoRechazo.classList.toggle("oculto", plan.decision_revision !== "Rechazado");
+                }
 
                 // Recuperar los datos comerciales.
                 document.getElementById("crear-incluye").value =
@@ -1480,11 +2654,14 @@
                     plan.no_incluye || "";
 
                 document.getElementById("ia-costo-input").value =
-                    plan.costo_estimado || "";
+                    Number(plan.costo_estimado).toLocaleString("es-CO");
+                document.getElementById("plan-descuento").value = plan.descuento_porcentaje || 0;
+                document.getElementById("oferta-inicio").value = plan.oferta_fecha_inicio || "";
+                document.getElementById("oferta-fin").value = plan.oferta_fecha_fin || "";
 
                 // Recuperar el itinerario editable.
                 renderItinerarioEditables(
-                    plan.itinerario.dias
+                    plan.itinerario?.dias || []
                 );
 
                 // Abrir la pantalla de edición.
@@ -1668,6 +2845,9 @@
                 planActualObjeto = data.plan;
 
                 idPlanActual = planActualObjeto.id_plan;
+                const avisoRechazo = document.getElementById("editar-aviso-rechazo");
+                if (avisoRechazo) avisoRechazo.classList.add("oculto");
+                mostrarImagenActualEdicion(planActualObjeto.imagen_url);
 
                 document.getElementById(
                     "titulo-ia-resultado"
@@ -1716,10 +2896,43 @@
                 contDias.innerHTML += `
                     <div class="dia-item">
                         <h4>Día ${d.numero_dia}</h4>
-                        <textarea id="edit-dia-${idx}" class="input-box">${d.descripcion_resumen}</textarea>
+                        <textarea id="edit-dia-${idx}" class="input-box">${escapeHTML(d.descripcion_resumen)}</textarea>
                     </div>
                 `;
             });
+        }
+
+        function mostrarImagenActualEdicion(url) {
+            const preview = document.getElementById("editar-imagen-preview");
+            const input = document.getElementById("editar-imagen");
+            if (input) input.value = "";
+            if (!preview) return;
+            if (url) {
+                preview.src = url;
+                preview.style.display = "block";
+            } else {
+                preview.removeAttribute("src");
+                preview.style.display = "none";
+            }
+        }
+
+        async function guardarImagenSeleccionada() {
+            const campo = document.getElementById("editar-imagen");
+            const archivoImagen = campo?.files?.[0];
+            if (!archivoImagen) return;
+
+            const formularioImagen = new FormData();
+            formularioImagen.append("imagen", archivoImagen);
+            const respuestaImagen = await fetch(
+                `${API_URL}/planes/${idPlanActual}/imagen`,
+                {method: "PUT", body: formularioImagen}
+            );
+            const resultadoImagen = await respuestaImagen.json();
+            if (!respuestaImagen.ok) {
+                throw new Error(resultadoImagen.error || "No se pudo actualizar la imagen.");
+            }
+            planActualObjeto.imagen_url = resultadoImagen.imagen_url;
+            mostrarImagenActualEdicion(resultadoImagen.imagen_url);
         }
 
         async function guardarBorradorEditado() {
@@ -1748,7 +2961,7 @@
 
                 const costo = document
                     .getElementById("ia-costo-input")
-                    .value;
+                    .value.replace(/\D/g, "");
 
                 if (!incluye || !noIncluye || !costo) {
                     mostrarToast(
@@ -1790,7 +3003,10 @@
                         body: JSON.stringify({
                             incluye: incluye,
                             no_incluye: noIncluye,
-                            costo_estimado: costo
+                            costo_estimado: costo,
+                            descuento_porcentaje: document.getElementById("plan-descuento")?.value || 0,
+                            oferta_fecha_inicio: document.getElementById("oferta-inicio")?.value || null,
+                            oferta_fecha_fin: document.getElementById("oferta-fin")?.value || null
                         })
                     }
                 );
@@ -1804,10 +3020,10 @@
                     );
                 }
 
-                planActualObjeto = resultadoItinerario.plan;
+                await guardarImagenSeleccionada();
+                await guardarImagenesGaleria();
 
                 mostrarToast("Borrador actualizado correctamente.");
-
                 mostrarVista("asesor-mis-planes");
 
             } catch (error) {
@@ -1861,7 +3077,10 @@
                         body: JSON.stringify({
                             incluye: incluye,
                             no_incluye: noIncluye,
-                            costo_estimado: costo
+                            costo_estimado: costo,
+                            descuento_porcentaje: document.getElementById("plan-descuento")?.value || 0,
+                            oferta_fecha_inicio: document.getElementById("oferta-inicio")?.value || null,
+                            oferta_fecha_fin: document.getElementById("oferta-fin")?.value || null
                         })
                     }
                 );
@@ -1872,6 +3091,10 @@
                     mostrarToast(datos.error, true);
                     return;
                 }
+
+                // Guardar portada y fotografías adicionales antes de enviar a revisión.
+                await guardarImagenSeleccionada();
+                await guardarImagenesGaleria();
 
                 // Enviar a revisión
 
@@ -1903,7 +3126,218 @@
         }
 
 
+        async function cargarReportesAsesor() {
+            const cont=document.getElementById('asesor-reportes-contenido'); cont.innerHTML='<p>Cargando reportes...</p>';
+            try {
+                const res=await fetch(`${API_URL}/asesor/reportes`), d=await res.json();
+                if(!res.ok) throw new Error(d.error || 'No se pudieron cargar los reportes.');
+                const cards=[['Planes creados',d.planes_total],['Publicados',d.publicados],['Pendientes',d.pendientes],['Borradores',d.borradores],['Solicitudes recibidas',d.solicitudes],['Solicitudes nuevas',d.solicitudes_nuevas]];
+                cont.innerHTML=`<div class="admin-report-grid">${cards.map(([l,v])=>`<article class="admin-report-card"><span>${l}</span><strong>${Number(v||0).toLocaleString('es-CO')}</strong></article>`).join('')}</div>`;
+            } catch(e) { cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`; }
+        }
+
+        async function actualizarEstadoSolicitud(id, estado) {
+            try {
+                const res=await fetch(`${API_URL}/asesor/solicitudes/${id}/estado`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado})});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo actualizar.');
+                mostrarToast('Estado de solicitud actualizado.'); cargarSolicitudesAsesor();
+            } catch(e) { mostrarToast(e.message,true); }
+        }
+
+        async function archivarSolicitud(id, rol) {
+            if (!(await confirmarAccion('¿Archivar solicitud?', 'Dejará de aparecer en la bandeja principal, pero conservarás su historial.', 'Sí, archivar'))) return;
+            try {
+                const res=await fetch(`${API_URL}/${rol}/solicitudes/${id}/archivar`,{method:'PATCH'});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo archivar.');
+                mostrarToast('Solicitud archivada.');
+                if (rol==='asesor') cargarSolicitudesAsesor(); else cargarSolicitudesAdmin();
+            } catch(e) { mostrarToast(e.message,true); }
+        }
+
+        async function desarchivarSolicitud(id, rol) {
+            if (!(await confirmarAccion('¿Desarchivar solicitud?', 'La solicitud volverá a aparecer en la bandeja principal.', 'Sí, desarchivar'))) return;
+            try {
+                const res=await fetch(`${API_URL}/${rol}/solicitudes/${id}/desarchivar`,{method:'PATCH'});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo desarchivar.');
+                mostrarToast(data.mensaje || 'Solicitud restaurada.');
+                if (rol==='asesor') await cargarSolicitudesAsesor(); else await cargarSolicitudesAdmin();
+            } catch(e) { mostrarToast(e.message,true); }
+        }
+
+        async function eliminarSolicitudDefinitivamente(id, rol) {
+            if (!(await confirmarAccion('¿Eliminar definitivamente?', 'Esta acción borrará la solicitud de PostgreSQL y no se podrá recuperar.', 'Sí, eliminar definitivamente'))) return;
+            try {
+                const res=await fetch(`${API_URL}/${rol}/solicitudes/${id}`,{method:'DELETE'});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo eliminar.');
+                mostrarToast(data.mensaje || 'Solicitud eliminada definitivamente.');
+                if (rol==='asesor') await cargarSolicitudesAsesor(); else await cargarSolicitudesAdmin();
+            } catch(e) { mostrarToast(e.message,true); }
+        }
+
+        async function cargarSolicitudesArchivadasAsesor() {
+            const cont=document.getElementById('historial-solicitudes-asesor'); if(!cont) return;
+            cont.innerHTML='<p>Cargando historial...</p>';
+            try {
+                const res=await fetch(`${API_URL}/asesor/solicitudes/archivadas`), data=await res.json();
+                if(!res.ok) throw new Error(data.error || 'No se pudo cargar el historial.');
+                if(!data.length){cont.innerHTML='<p style="color:var(--texto-gris)">Todavía no hay solicitudes archivadas.</p>';return;}
+                cont.innerHTML=`<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Cliente / detalle</th><th>Plan</th><th>Estado</th><th>Fecha de archivo</th><th>Acciones</th></tr></thead><tbody>${data.map(s=>`<tr><td>${escapeHTML(s.nombre)}<br><small>${escapeHTML(s.correo)} · ${escapeHTML(s.telefono)}</small><details class="solicitud-detalle"><summary>Ver comentario y datos</summary><div class="solicitud-detalle-contenido"><p><strong>Comentario:</strong> ${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p><p><strong>Fecha de recepción:</strong> ${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p></div></details></td><td>${escapeHTML(s.nombre_plan)}</td><td>${escapeHTML(s.estado)}</td><td>${s.fecha_archivado?new Date(s.fecha_archivado).toLocaleString('es-CO'):'—'}</td><td><button class="btn-outline-blue" onclick="desarchivarSolicitud(${s.id_solicitud},'asesor')">Desarchivar</button> <button class="btn-delete-action" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'asesor')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
+            } catch(e){cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`;}
+        }
+
+        let solicitudesAdminCache = [];
+        function filtrarSolicitudesAdmin() {
+            const estado = document.getElementById('filtro-estado-admin')?.value || '';
+            const asesor = document.getElementById('filtro-asesor-admin')?.value || '';
+            const desde = document.getElementById('filtro-desde-admin')?.value || '';
+            const hasta = document.getElementById('filtro-hasta-admin')?.value || '';
+            const lista = solicitudesAdminCache.filter(s => (!estado || s.estado===estado) && (!asesor || s.asesor===asesor) && (!desde || s.fecha_creacion.slice(0,10)>=desde) && (!hasta || s.fecha_creacion.slice(0,10)<=hasta));
+            const contenedor=document.getElementById('lista-solicitudes-admin'); if(!contenedor) return;
+            if(!lista.length){contenedor.innerHTML='<div class="caja-sugerido-ia" style="padding:1rem;">No hay solicitudes que coincidan con los filtros.</div>';return;}
+            contenedor.innerHTML=lista.map(s=>`
+                <article class="item-plan-filas tarjeta-solicitud-asesor tarjeta-solicitud-admin">
+                    <div class="informacion-solicitud-asesor">
+                        <h3>${escapeHTML(s.nombre)}</h3>
+                        <p><strong>Plan:</strong> ${escapeHTML(s.plan)}</p>
+                        <p><strong>Asesor:</strong> ${escapeHTML(s.asesor)}</p>
+                        <p><strong>Correo:</strong> <a href="mailto:${escapeHTML(s.correo)}">${escapeHTML(s.correo)}</a></p>
+                        <p><strong>Teléfono:</strong> <a href="tel:${escapeHTML(s.telefono)}">${escapeHTML(s.telefono)}</a></p>
+                        <details class="solicitud-detalle">
+                            <summary>Ver detalle de la solicitud</summary>
+                            <div class="solicitud-detalle-contenido">
+                                <p><strong>Comentario del cliente</strong><br>${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p>
+                                <p><strong>Fecha de recepción</strong><br>${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p>
+                            </div>
+                        </details>
+                        <small class="actualizacion-solicitud-admin">Última actualización: ${s.fecha_actualizacion?new Date(s.fecha_actualizacion).toLocaleString('es-CO'):'—'}${s.actualizado_por?' · por '+escapeHTML(s.actualizado_por):''}</small>
+                    </div>
+                    <div class="acciones-solicitud-asesor">
+                        <label class="texto-secundario" for="estado-solicitud-admin-${s.id_solicitud}">Estado</label>
+                        <select id="estado-solicitud-admin-${s.id_solicitud}" class="input-box select-estado-solicitud" onchange="actualizarEstadoSolicitudAdmin(${s.id_solicitud},this.value)">
+                            <option value="Nueva" ${s.estado==='Nueva'?'selected':''}>Nueva</option>
+                            <option value="En gestión" ${s.estado==='En gestión'?'selected':''}>En gestión</option>
+                            <option value="Atendida" ${s.estado==='Atendida'?'selected':''}>Atendida</option>
+                        </select>
+                        <button class="btn-outline-blue" type="button" onclick="archivarSolicitud(${s.id_solicitud},'admin')">Archivar</button>
+                        <button class="btn-delete-action" type="button" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'admin')">Eliminar</button>
+                    </div>
+                </article>`).join('');
+        }
+
+        async function cargarSolicitudesAdmin() {
+            const cont=document.getElementById('admin-solicitudes-contenido'); cont.innerHTML='<p>Cargando solicitudes...</p>';
+            try {
+                const res=await fetch(`${API_URL}/admin/solicitudes`), data=await res.json();
+                if(!res.ok) throw new Error(data.error || 'No se pudieron cargar las solicitudes.');
+                solicitudesAdminCache = data;
+                const counts={Nueva:0,'En gestión':0,Atendida:0}; data.forEach(s=>counts[s.estado]=(counts[s.estado]||0)+1);
+                const asesores=[...new Set(data.map(s=>s.asesor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+                cont.innerHTML=`<div class="admin-report-grid" style="margin-bottom:1rem;">${Object.entries(counts).map(([k,v])=>`<article class="admin-report-card"><span>${k}</span><strong>${v}</strong></article>`).join('')}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;align-items:end;">
+                        <div><label for="filtro-estado-admin">Estado</label><select id="filtro-estado-admin" class="input-box" onchange="filtrarSolicitudesAdmin()"><option value="">Todos</option><option>Nueva</option><option>En gestión</option><option>Atendida</option></select></div>
+                        <div><label for="filtro-asesor-admin">Asesor</label><select id="filtro-asesor-admin" class="input-box" onchange="filtrarSolicitudesAdmin()"><option value="">Todos</option>${asesores.map(a=>`<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join('')}</select></div>
+                        <div><label for="filtro-desde-admin">Desde</label><input id="filtro-desde-admin" class="input-box" type="date" onchange="filtrarSolicitudesAdmin()"></div>
+                        <div><label for="filtro-hasta-admin">Hasta</label><input id="filtro-hasta-admin" class="input-box" type="date" onchange="filtrarSolicitudesAdmin()"></div>
+                    </div>
+                    <div id="lista-solicitudes-admin" class="lista-solicitudes-admin"></div>`;
+                filtrarSolicitudesAdmin();
+                await cargarSolicitudesArchivadasAdmin();
+            } catch(e) { cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`; }
+        }
+
+        async function actualizarEstadoSolicitudAdmin(id, estado) {
+            try {
+                const res=await fetch(`${API_URL}/admin/solicitudes/${id}/estado`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado})});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo actualizar.');
+                mostrarToast('Estado de solicitud actualizado.'); cargarSolicitudesAdmin();
+            } catch(e){mostrarToast(e.message,true);}
+        }
+
+        async function cargarSolicitudesArchivadasAdmin() {
+            const cont=document.getElementById('admin-solicitudes-archivadas'); if(!cont) return;
+            cont.innerHTML='<p>Cargando historial...</p>';
+            try {
+                const res=await fetch(`${API_URL}/admin/solicitudes/archivadas`), data=await res.json();
+                if(!res.ok) throw new Error(data.error || 'No se pudo cargar el historial.');
+                if(!data.length){cont.innerHTML='<p style="color:var(--texto-gris)">Todavía no hay solicitudes archivadas.</p>';return;}
+                cont.innerHTML=`<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Cliente</th><th>Plan</th><th>Asesor</th><th>Estado</th><th>Fecha de archivo</th><th>Acciones</th></tr></thead><tbody>${data.map(s=>`<tr><td>${escapeHTML(s.nombre)}<br><small>${escapeHTML(s.correo)}</small><details class="solicitud-detalle"><summary>Ver detalle</summary><div class="solicitud-detalle-contenido"><p><strong>Comentario:</strong> ${s.mensaje ? escapeHTML(s.mensaje) : 'El cliente no dejó comentarios.'}</p><p><strong>Fecha de recepción:</strong> ${new Date(s.fecha_creacion).toLocaleString('es-CO')}</p></div></details></td><td>${escapeHTML(s.plan)}</td><td>${escapeHTML(s.asesor)}</td><td>${escapeHTML(s.estado)}</td><td>${s.fecha_archivado?new Date(s.fecha_archivado).toLocaleString('es-CO'):'—'}</td><td><button class="btn-outline-blue" onclick="desarchivarSolicitud(${s.id_solicitud},'admin')">Desarchivar</button><br><button class="btn-delete-action" onclick="eliminarSolicitudDefinitivamente(${s.id_solicitud},'admin')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
+            } catch(e){cont.innerHTML=`<p>${escapeHTML(e.message)}</p>`;}
+        }
+
+
         // ADMIN: PANEL Y PANTALLA DE REVISIÓN
+        async function cargarUsuariosAdmin() {
+            const cont = document.getElementById("admin-lista-usuarios");
+            cont.innerHTML = "<p>Cargando usuarios...</p>";
+            try {
+                const res = await fetch(`${API_URL}/admin/usuarios`); const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "No se pudieron cargar los usuarios.");
+                if (!data.length) {
+                    cont.innerHTML = "<p>No hay cuentas activas o desactivadas para mostrar.</p>";
+                } else {
+                    cont.innerHTML = `<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${data.map(u => `<tr><td>${escapeHTML(u.nombre)}</td><td>${escapeHTML(u.correo)}</td><td>${escapeHTML(u.rol)}</td><td><span class="badge-estado ${u.activo ? 'publicado' : 'borrador'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td><td><div class="acciones-usuario"><button class="btn-outline-blue" type="button" onclick="cambiarEstadoUsuario(${u.id_usuario},${!u.activo})">${u.activo ? 'Desactivar' : 'Activar'}</button><button class="btn-usuario-eliminar" type="button" onclick="eliminarUsuarioAdmin(${u.id_usuario},'${escapeHTML(u.nombre)}','${escapeHTML(u.rol)}')"><span aria-hidden="true" style="margin-right:.35rem">🗑</span>Eliminar</button></div></td></tr>`).join("")}</tbody></table></div><p style="color:var(--texto-gris);font-size:.85rem;margin-top:.7rem">Desactivar bloquea temporalmente el acceso. Eliminar anonimiza los datos personales, bloquea el acceso y conserva las relaciones necesarias para la trazabilidad.</p>`;
+                }
+            } catch(e) { cont.innerHTML = `<p>${escapeHTML(e.message)}</p>`; }
+        }
+
+        async function cargarHistorialUsuariosEliminados() {
+            const cont = document.getElementById("admin-historial-usuarios-eliminados");
+            if (!cont) return;
+            cont.innerHTML = "<p>Cargando historial...</p>";
+            try {
+                const res = await fetch(`${API_URL}/admin/usuarios/eliminados`); const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "No se pudo consultar el historial.");
+                if (!data.length) { cont.innerHTML = "<p style=\"color:var(--texto-gris)\">Todavía no hay cuentas eliminadas.</p>"; return; }
+                cont.innerHTML = `<div style="overflow-x:auto"><table class="tabla-admin"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Fecha de eliminación</th><th>Estado</th></tr></thead><tbody>${data.map(u => `<tr><td>${escapeHTML(u.nombre)}</td><td>${escapeHTML(u.correo)}</td><td>${escapeHTML(u.rol)}</td><td>${u.fecha_eliminacion ? new Date(u.fecha_eliminacion).toLocaleString('es-CO') : 'No registrada'}</td><td><span class="badge-estado borrador">Eliminado</span></td></tr>`).join("")}</tbody></table></div>`;
+            } catch(e) { cont.innerHTML = `<p>${escapeHTML(e.message)}</p>`; }
+        }
+
+        async function crearUsuarioAdmin(event) {
+            event.preventDefault();
+            const form = document.getElementById('form-admin-crear-usuario');
+            const payload = { nombre: document.getElementById('admin-nuevo-nombre').value, correo: document.getElementById('admin-nuevo-correo').value, contrasena: document.getElementById('admin-nuevo-password').value, rol: document.getElementById('admin-nuevo-rol').value };
+            try {
+                const res = await fetch(`${API_URL}/admin/usuarios`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+                const data = await res.json(); if (!res.ok) throw new Error(data.error || 'No se pudo crear el usuario.');
+                form.reset(); mostrarToast(data.mensaje || 'Usuario creado correctamente.'); await cargarUsuariosAdmin();
+            } catch (e) { mostrarToast(e.message, true); }
+        }
+
+        async function cambiarEstadoUsuario(id, activo) {
+            const accion = activo ? 'activar' : 'desactivar';
+            if (!(await confirmarAccion(`¿${accion.charAt(0).toUpperCase()+accion.slice(1)} cuenta?`, `La cuenta ${activo ? 'recuperará' : 'perderá'} el acceso a RUMBALIA.`, `Sí, ${accion}`))) return;
+            try {
+                const res=await fetch(`${API_URL}/admin/usuarios/${id}/estado`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({activo})});
+                const data=await res.json(); if(!res.ok) throw new Error(data.error || 'No se pudo actualizar la cuenta.');
+                mostrarToast(data.mensaje); await cargarUsuariosAdmin();
+            } catch(e) { mostrarToast(e.message,true); }
+        }
+
+        async function eliminarUsuarioAdmin(id, nombre, rol) {
+            if (!(await confirmarAccion('¿Eliminar esta cuenta?', `La cuenta de ${nombre} (${rol}) desaparecerá del listado habitual y no podrá iniciar sesión. Sus planes, revisiones y registros históricos se conservarán.`, 'Sí, eliminar cuenta'))) return;
+            try {
+                const res=await fetch(`${API_URL}/admin/usuarios/${id}`,{method:'DELETE'}); const data=await res.json();
+                if(!res.ok) throw new Error(data.error || 'No se pudo eliminar la cuenta.');
+                mostrarToast(data.mensaje); await cargarUsuariosAdmin();
+            } catch(e) { mostrarToast(e.message,true); }
+        }
+
+        async function cargarReportesAdmin() {
+            const cont = document.getElementById("admin-reportes-contenido");
+            cont.innerHTML = "<p>Generando reportes...</p>";
+            try {
+                const res = await fetch(`${API_URL}/admin/reportes`); const d = await res.json();
+                if (!res.ok) throw new Error(d.error || "No se pudieron cargar los reportes.");
+                const cards = [
+                    ["Planes publicados", d.planes_publicados], ["Pendientes de aprobación", d.planes_pendientes],
+                    ["Borradores", d.planes_borrador], ["Asesores", d.asesores],
+                    ["Clientes registrados", d.clientes], ["Solicitudes recibidas", d.solicitudes],
+                    ["Ofertas vigentes", d.ofertas_vigentes]
+                ];
+                cont.innerHTML = `<div class="admin-report-grid">${cards.map(([label,value]) => `<article class="admin-report-card"><span>${label}</span><strong>${Number(value || 0).toLocaleString("es-CO")}</strong></article>`).join("")}</div><p style="color:var(--texto-gris);font-size:.88rem">Datos consultados directamente desde la base de datos.</p>`;
+            } catch(e) { cont.innerHTML = `<p>${escapeHTML(e.message)}</p>`; }
+        }
+
         async function cargarPlanesAdmin() {
             try {
                 const [rPlanes, rStats] = await Promise.all([fetch(`${API_URL}/admin/pendientes`), fetch(`${API_URL}/admin/estadisticas`)]);
@@ -1932,24 +3366,8 @@
                 document.getElementById('admin-revision-asesor').innerText = `Creado por: ${p.nombre_asesor}`;
                 document.getElementById('admin-revision-incluye').innerText = p.incluye || 'No especificado';
                 document.getElementById('admin-revision-no-incluye').innerText = p.no_incluye || 'No especificado';
-                const img = document.getElementById('admin-revision-img');
-                if (img) {
-                    const fallback = img.nextElementSibling;
-
-                    if (fallback && fallback.classList.contains("img-fallback")) {
-                        fallback.remove();
-                    }
-
-                    img.style.display = "";
-                    img.onerror = () => usarFallbackImg(img, p.destino);
-
-                    if (p.imagen_url) {
-                        img.src = p.imagen_url;
-                    } else {
-                        img.removeAttribute("src");
-                        usarFallbackImg(img, p.destino);
-                    }
-                }
+                // El administrador revisa exactamente la misma galería que verá el cliente.
+                renderizarGaleriaEn("admin-revision-galeria", p, "admin-revision");
                 document.getElementById('admin-revision-itinerario').innerHTML = (p.itinerario?.dias || []).map(d => `<div class="dia-item"><h4>Día ${d.numero_dia}</h4><p>${escapeHTML(d.descripcion_resumen)}</p></div>`).join('') || '<p>Sin itinerario.</p>';
                 document.getElementById('admin-motivo-rechazo').value = ''; mostrarVista('admin-revision');
             } catch (e) { mostrarToast(e.message, true); }
@@ -1966,8 +3384,75 @@
             } catch (e) { mostrarToast(e.message, true); }
         }
 
-        
-        document.addEventListener("DOMContentLoaded", () => {
+        async function eliminarBorrador(idPlan, estadoPlan = "Borrador") {
+            const confirmar = await confirmarAccion(
+                `¿Eliminar ${estadoPlan.toLowerCase()}?`,
+                `Vas a eliminar este plan y su información relacionada. Esta acción no se puede deshacer.`,
+                "Sí, eliminar plan"
+            );
+
+            if (!confirmar) return;
+
+            try {
+                const respuesta = await fetch(
+                    `${API_URL}/asesor/planes/${idPlan}`,
+                    { method: "DELETE" }
+                );
+
+                const texto = await respuesta.text();
+                let resultado;
+
+                try {
+                    resultado = texto ? JSON.parse(texto) : {};
+                } catch (error) {
+                    console.error("Respuesta inesperada del servidor:", texto);
+                    throw new Error(`Respuesta inesperada del servidor (HTTP ${respuesta.status}).`);
+                }
+
+                if (!respuesta.ok) {
+                    throw new Error(resultado.error || "No se pudo eliminar el plan.");
+                }
+
+                mostrarToast(resultado.mensaje || "Plan eliminado correctamente.");
+                await cargarPlanesAsesor();
+
+            } catch (error) {
+                mostrarToast(error.message, true);
+            }
+        }
+
+                document.addEventListener("DOMContentLoaded", () => {
+
+            const campoImagenEdicion = document.getElementById("editar-imagen");
+            if (campoImagenEdicion) {
+                campoImagenEdicion.addEventListener("change", function () {
+                    const archivo = this.files[0];
+                    if (!archivo) return;
+                    const formatos = ["image/jpeg", "image/png", "image/webp"];
+                    if (!formatos.includes(archivo.type) || archivo.size > 5 * 1024 * 1024) {
+                        mostrarToast("Selecciona JPG, PNG o WEBP de máximo 5 MB.", true);
+                        this.value = "";
+                        return;
+                    }
+                    const preview = document.getElementById("editar-imagen-preview");
+                    preview.src = URL.createObjectURL(archivo);
+                    preview.style.display = "block";
+                });
+            }
+
+            const campoGaleria = document.getElementById("editar-galeria-imagenes");
+            if (campoGaleria) {
+                campoGaleria.addEventListener("change", function () {
+                    const contenedor = document.getElementById("editar-galeria-preview");
+                    contenedor.innerHTML = "";
+                    Array.from(this.files || []).slice(0, 8).forEach(file => {
+                        if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) return;
+                        const img = document.createElement("img");
+                        img.src = URL.createObjectURL(file); img.alt = "Nueva fotografía";
+                        contenedor.appendChild(img);
+                    });
+                });
+            }
 
             const campoImagen = document.getElementById("crear-imagen");
 

@@ -17,8 +17,15 @@ CREATE TABLE IF NOT EXISTS usuarios (
     correo VARCHAR(100) UNIQUE NOT NULL,
     contrasena_cifrada VARCHAR(255) NOT NULL,
     rol VARCHAR(20) NOT NULL
-        CHECK (rol IN ('asesor', 'administrador', 'cliente'))
+        CHECK (rol IN ('asesor', 'administrador', 'cliente')),
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    eliminado BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_eliminacion TIMESTAMP NULL
 );
+
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS eliminado BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_eliminacion TIMESTAMP NULL;
 
 
 -- =============================================================================
@@ -53,9 +60,27 @@ CREATE TABLE IF NOT EXISTS planes (
         CHECK (estado IN ('Borrador', 'Pendiente', 'Publicado')),
     incluye TEXT,
     no_incluye TEXT,
+    imagen_url TEXT,
+    descuento_porcentaje NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (descuento_porcentaje >= 0 AND descuento_porcentaje <= 90),
+    oferta_fecha_inicio DATE,
+    oferta_fecha_fin DATE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Migraciones seguras para bases de datos existentes.
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS imagen_url TEXT;
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS descuento_porcentaje NUMERIC(5,2) NOT NULL DEFAULT 0;
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS oferta_fecha_inicio DATE;
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS oferta_fecha_fin DATE;
+
+
+-- Galería de fotografías propia de cada plan (no comparte imágenes entre destinos).
+CREATE TABLE IF NOT EXISTS imagenes_plan (
+    id_imagen SERIAL PRIMARY KEY,
+    id_plan INT NOT NULL REFERENCES planes(id_plan) ON DELETE CASCADE,
+    imagen_url TEXT NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- =============================================================================
 -- 4. TABLA DE ITINERARIOS
@@ -493,3 +518,75 @@ WHERE NOT EXISTS (
 -- FIN DEL SCRIPT
 -- DISEÑADOR INTELIGENTE DE PLANES TURÍSTICOS - MVP SPRINT 1
 -- =============================================================================
+
+
+-- =============================================================================
+-- 8. SOLICITUDES DE CONTACTO DE CLIENTES
+-- El cliente no necesita crear una cuenta para manifestar interés.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS solicitudes_contacto (
+    id_solicitud SERIAL PRIMARY KEY,
+    id_plan INT NOT NULL
+        REFERENCES planes(id_plan) ON DELETE CASCADE,
+    nombre VARCHAR(100) NOT NULL,
+    correo VARCHAR(150) NOT NULL,
+    telefono VARCHAR(30) NOT NULL,
+    mensaje TEXT,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Nueva'
+        CHECK (estado IN ('Nueva', 'En gestión', 'Atendida')),
+    fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    archivada BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_archivado TIMESTAMP NULL,
+    archivada_por INTEGER NULL REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    fecha_actualizacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_por INTEGER NULL REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    eliminada BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_eliminacion TIMESTAMP NULL,
+    eliminada_por INTEGER NULL REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_plan
+    ON solicitudes_contacto(id_plan);
+
+
+-- =============================================================================
+-- MIGRACIÓN IDEMPOTENTE: GESTIÓN Y TRAZABILIDAD DE SOLICITUDES
+-- También actualiza instalaciones existentes donde la tabla ya estaba creada.
+-- =============================================================================
+ALTER TABLE solicitudes_contacto
+    ADD COLUMN IF NOT EXISTS archivada BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS fecha_archivado TIMESTAMP NULL,
+    ADD COLUMN IF NOT EXISTS archivada_por INTEGER NULL REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS fecha_actualizacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS actualizado_por INTEGER NULL REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS eliminada BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS fecha_eliminacion TIMESTAMP NULL,
+    ADD COLUMN IF NOT EXISTS eliminada_por INTEGER NULL REFERENCES usuarios(id_usuario) ON DELETE SET NULL;
+
+DO $$
+DECLARE restriccion RECORD;
+BEGIN
+    FOR restriccion IN
+        SELECT conname
+        FROM pg_constraint
+        WHERE conrelid = 'solicitudes_contacto'::regclass
+          AND contype = 'c'
+          AND pg_get_constraintdef(oid) ILIKE '%estado%'
+    LOOP
+        EXECUTE format('ALTER TABLE solicitudes_contacto DROP CONSTRAINT %I', restriccion.conname);
+    END LOOP;
+END $$;
+
+UPDATE solicitudes_contacto SET estado = 'En gestión' WHERE estado = 'Contactada';
+UPDATE solicitudes_contacto SET estado = 'Atendida' WHERE estado = 'Cerrada';
+UPDATE solicitudes_contacto SET fecha_actualizacion = COALESCE(fecha_actualizacion, fecha_creacion, CURRENT_TIMESTAMP);
+
+ALTER TABLE solicitudes_contacto
+    ADD CONSTRAINT solicitudes_contacto_estado_check
+    CHECK (estado IN ('Nueva', 'En gestión', 'Atendida'));
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_plan_estado
+    ON solicitudes_contacto(id_plan, estado);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_archivadas
+    ON solicitudes_contacto(archivada, fecha_archivado DESC);

@@ -192,7 +192,10 @@ class PlanTuristico:
         itinerario: Itinerario = None,
         imagen_url=None,
         incluye="",
-        no_incluye=""
+        no_incluye="",
+        imagenes=None,
+        decision_revision=None,
+        motivo_rechazo=""
     ):
         self.id_plan = id_plan
         self.nombre = nombre
@@ -205,6 +208,9 @@ class PlanTuristico:
         self.imagen_url = imagen_url
         self.incluye = incluye or ""
         self.no_incluye = no_incluye or ""
+        self.imagenes = imagenes or []
+        self.decision_revision = decision_revision
+        self.motivo_rechazo = motivo_rechazo or ""
 
     def enviar_a_revision(self):
         if not self.itinerario or not self.itinerario.esta_completo(
@@ -231,6 +237,9 @@ class PlanTuristico:
             "costo_estimado": self.costo_estimado,
             "estado": self.estado,
             "imagen_url": self.imagen_url,
+            "imagenes": self.imagenes,
+            "decision_revision": self.decision_revision,
+            "motivo_rechazo": self.motivo_rechazo,
             "incluye": self.incluye,
             "no_incluye": self.no_incluye,
             "itinerario": (
@@ -250,7 +259,12 @@ class GeneradorItinerarioIA:
     TIEMPO_LIMITE = 30.0
 
     @staticmethod
-    def generar(destino_nombre, datos_viajero: DatosViajero):
+    def generar(
+        destino_nombre,
+        datos_viajero: DatosViajero,
+        pais,
+        continente=None
+    ):
         # 1. Obtener la clave de Groq.
         groq_key = None
 
@@ -279,10 +293,22 @@ class GeneradorItinerarioIA:
         prompt = f"""
 Actúa como un agente de viajes profesional.
 
-Genera un itinerario turístico para {destino_nombre}.
+Genera un itinerario turístico para {destino_nombre}, ubicado en {pais}.
+
+Ubicación geográfica obligatoria:
+- Destino indicado: {destino_nombre}
+- País: {pais}
+- Continente: {continente or "No especificado"}
+
+Debes interpretar el destino exclusivamente dentro del país indicado.
+Si existen ciudades, regiones o lugares con el mismo nombre en otros países,
+ignóralos y utiliza únicamente el lugar que corresponda a {destino_nombre}
+en {pais}. No mezcles atractivos, ciudades, moneda, gastronomía ni
+referencias geográficas de otros países.
 
 Datos del viajero:
 - Destino: {destino_nombre}
+- País: {pais}
 - Duración: exactamente {datos_viajero.duracion_dias} días.
 - Presupuesto total: ${datos_viajero.presupuesto:,.0f} COP.
 - Tipo de viajero: {datos_viajero.tipo_viajero}.
@@ -291,10 +317,11 @@ Datos del viajero:
 Instrucciones:
 1. Genera exactamente {datos_viajero.duracion_dias} días.
 2. Incluye actividades relevantes y diferentes para cada día.
-3. Usa lugares reales del destino; no inventes atracciones.
-4. Considera el presupuesto, el tipo de viajero y sus intereses.
-5. Organiza las actividades de forma lógica.
-6. No agregues introducciones ni conclusiones.
+3. Usa lugares reales del destino dentro del país indicado; no inventes atracciones.
+4. No incluyas lugares de otros países aunque tengan el mismo nombre.
+5. Considera el presupuesto, el tipo de viajero y sus intereses.
+6. Organiza las actividades de forma lógica y evita traslados imposibles.
+7. No agregues introducciones ni conclusiones.
 
 Formato obligatorio:
 Día 1: Lugar o zona - Descripción de las actividades.
