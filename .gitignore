@@ -8,4 +8,3 @@ secret_config.py
 /etc/secrets/
 static/uploads/destinos/*
 !static/uploads/destinos/.gitkeep
-.pytest_cache

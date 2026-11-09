@@ -777,6 +777,11 @@
         #vista-admin-revision .detalle-left > h3 { color:#15397A; font-size:1.08rem; margin:1.7rem 0 .8rem; }
         #vista-admin-revision .detalle-left > h3:first-of-type { margin-top:1.8rem; }
         #vista-admin-revision #admin-revision-precio { margin-bottom:.6rem; }
+        .admin-oferta-revision { margin:.85rem 0 1rem; padding:1rem 1.1rem; border:1px solid #dce9df; border-radius:13px; background:#f5faf6; color:#294b34; }
+        .admin-oferta-revision h3 { margin:0 0 .65rem !important; color:#276738 !important; font-size:1rem !important; }
+        .admin-oferta-revision .oferta-revision-fila { display:flex; justify-content:space-between; gap:1rem; padding:.28rem 0; }
+        .admin-oferta-revision .oferta-revision-total { margin-top:.4rem; padding-top:.65rem; border-top:1px solid #d5e6d9; font-weight:800; font-size:1.05rem; }
+        .admin-oferta-revision .oferta-revision-nota { margin:.55rem 0 0; color:#596b5e; font-size:.84rem; line-height:1.45; }
         #vista-admin-revision #admin-revision-datos { line-height:1.6; margin-bottom:1.25rem; color:#596579; }
         #admin-revision-itinerario { display:grid; gap:.85rem; }
         #admin-revision-itinerario .dia-item { padding:.9rem 1rem; border:1px solid #e4eaf4; border-radius:12px; background:#fbfcff; }
@@ -1800,6 +1805,7 @@
             <div class="grid-detalle-plan">
                 <div class="detalle-left">
                     <div class="precio-tag" id="admin-revision-precio"></div>
+                    <section id="admin-revision-oferta" class="admin-oferta-revision" aria-live="polite"></section>
                     <p id="admin-revision-datos"></p>
                     <h3>Descripción del plan</h3>
                     <p id="admin-revision-descripcion" class="desc-text">No hay una descripción disponible.</p>
@@ -3547,7 +3553,27 @@
                     descripcionRevision.innerText = (p.descripcion || '').trim() ||
                         'La IA no generó una descripción para este plan.';
                 }
-                document.getElementById('admin-revision-precio').innerText = `Costo estimado: $${Number(p.costo_estimado).toLocaleString('es-CO')} COP`;
+                const precioBase = Number(p.costo_estimado || 0);
+                const descuento = Math.max(0, Math.min(90, Number(p.descuento_porcentaje || 0)));
+                const precioFinal = precioBase * (1 - descuento / 100);
+                const formatoCOP = valor => `$${Math.round(valor).toLocaleString('es-CO')} COP`;
+                document.getElementById('admin-revision-precio').innerText = `Costo estimado: ${formatoCOP(precioBase)}`;
+                const ofertaRevision = document.getElementById('admin-revision-oferta');
+                if (ofertaRevision) {
+                    if (descuento > 0) {
+                        const fechaInicio = p.oferta_fecha_inicio ? new Date(`${p.oferta_fecha_inicio}T00:00:00`).toLocaleDateString('es-CO') : 'No definida';
+                        const fechaFin = p.oferta_fecha_fin ? new Date(`${p.oferta_fecha_fin}T00:00:00`).toLocaleDateString('es-CO') : 'No definida';
+                        ofertaRevision.innerHTML = `<h3>Descuento y condiciones de la oferta</h3>
+                            <div class="oferta-revision-fila"><span>Precio base</span><strong>${formatoCOP(precioBase)}</strong></div>
+                            <div class="oferta-revision-fila"><span>Descuento propuesto</span><strong>${descuento}%</strong></div>
+                            <div class="oferta-revision-fila oferta-revision-total"><span>Precio con descuento</span><strong>${formatoCOP(precioFinal)}</strong></div>
+                            <div class="oferta-revision-fila"><span>Vigencia desde</span><strong>${fechaInicio}</strong></div>
+                            <div class="oferta-revision-fila"><span>Vigencia hasta</span><strong>${fechaFin}</strong></div>
+                            <p class="oferta-revision-nota">Verifica que el porcentaje, el precio final y las fechas de vigencia correspondan a la promoción que se ofrecerá a los clientes.</p>`;
+                    } else {
+                        ofertaRevision.innerHTML = `<h3>Descuento y condiciones de la oferta</h3><p class="oferta-revision-nota">Este plan no tiene un descuento configurado. Se publicará con su precio base de ${formatoCOP(precioBase)}.</p>`;
+                    }
+                }
                 document.getElementById('admin-revision-datos').innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días · ${p.datos_viajero.tipo_viajero} · Intereses: ${p.datos_viajero.intereses}`;
                 document.getElementById('admin-revision-asesor').innerText = `Creado por: ${p.nombre_asesor}`;
                 document.getElementById('admin-revision-incluye').innerText = p.incluye || 'No especificado';

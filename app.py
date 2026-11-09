@@ -1169,6 +1169,24 @@ def detalle_pendiente_admin(id_plan):
         cursor = PlanesController.obtener_cursor()
 
         try:
+            # La revisión administrativa debe incluir las condiciones completas
+            # de la oferta antes de que el administrador apruebe el plan.
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(descuento_porcentaje, 0),
+                    oferta_fecha_inicio,
+                    oferta_fecha_fin
+                FROM planes
+                WHERE id_plan = %s;
+                """,
+                (id_plan,)
+            )
+            oferta = cursor.fetchone()
+            resultado["descuento_porcentaje"] = float(oferta[0] or 0) if oferta else 0
+            resultado["oferta_fecha_inicio"] = oferta[1].isoformat() if oferta and oferta[1] else None
+            resultado["oferta_fecha_fin"] = oferta[2].isoformat() if oferta and oferta[2] else None
+
             cursor.execute(
                 """
                 SELECT nombre
