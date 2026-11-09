@@ -458,7 +458,7 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 - La generación de itinerarios depende de la disponibilidad de la API de Groq y de una clave válida.
 - Los resultados generados mediante inteligencia artificial deben ser revisados por el asesor antes de enviarse a aprobación.
 - Las ofertas solo se muestran cuando tienen descuentos y fechas de vigencia configurados.
-- La aplicación almacena las imágenes en el directorio local `static/uploads/destinos`; para producción se recomienda utilizar almacenamiento persistente o un servicio externo de imágenes.
+- Las imágenes se almacenan en `UPLOAD_FOLDER`; en desarrollo se usa `static/uploads/destinos` y en Render debe apuntar a un Persistent Disk o a un almacenamiento de objetos externo.
 - Las solicitudes de contacto son gestionadas dentro de la plataforma; el registro de una solicitud no implica que se haya enviado automáticamente un correo electrónico al cliente.
 - El proyecto corresponde a un producto mínimo viable (MVP), por lo que puede ampliarse con nuevas funcionalidades en versiones posteriores.
 
@@ -469,6 +469,23 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 **Versión:** MVP.
 
 **Tecnologías principales:** Python, Flask, PostgreSQL, HTML, CSS y JavaScript.\n\n### Nombre y descripción comercial de los planes\n\nDurante la creación, el asesor puede escribir un nombre comercial para el plan. Si no lo especifica, Rumbalia conserva el nombre sugerido por destino y duración. La IA genera tanto el itinerario como una descripción comercial del viaje; el asesor puede editar ambos textos antes de enviar el plan a revisión. La descripción se muestra debajo de la galería de imágenes en el detalle público.\n\nLa tabla `planes` incluye la columna `descripcion`. En bases de datos ya existentes, ejecutar una sola vez `ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;` antes de desplegar esta versión. Esta actualización no requiere eliminar ni recrear tablas o registros.\n
+
+
+## Almacenamiento persistente de fotografías en Render
+
+Las fotografías de los planes se guardan en `UPLOAD_FOLDER`. En desarrollo local, si no se define esta variable, Rumbalia utiliza `static/uploads/destinos`. En Render **no basta con guardar los archivos en el proyecto**, porque el sistema de archivos predeterminado es efímero y puede perder cambios en reinicios o despliegues.
+
+Para conservar las imágenes en Render:
+
+1. En el Dashboard de Render, abre el servicio web de Rumbalia y entra a **Disks**.
+2. Agrega un Persistent Disk (requiere un plan de servicio compatible; los discos persistentes no están disponibles en el plan Free). Usa como **Mount Path** `/var/data` y un tamaño inicial acorde al volumen de fotografías (por ejemplo, 1 GB).
+3. En **Environment**, agrega `UPLOAD_FOLDER` con el valor `/var/data/uploads/destinos`.
+4. Guarda los cambios y espera a que termine el nuevo deploy.
+5. Crea un plan de prueba con una imagen principal y varias fotos de galería. Verifica que se vean después de reiniciar o desplegar nuevamente.
+
+El código conserva las URLs antiguas `/static/uploads/destinos/...`, pero ahora las sirve desde `UPLOAD_FOLDER`, por lo que no es necesario modificar los registros existentes en PostgreSQL. Al iniciar, también intenta copiar al disco persistente cualquier imagen que todavía exista en la carpeta local antigua, sin sobrescribir archivos. Esta migración automática es de mejor esfuerzo: no puede recuperar archivos que Render ya haya eliminado antes de conectar el disco.
+
+**Importante:** un Persistent Disk de Render está conectado a una sola instancia y no permite escalar horizontalmente el servicio a varias instancias. Si Rumbalia necesita varias instancias o utiliza el plan Free, conviene usar almacenamiento de objetos externo (por ejemplo, S3 o Cloudinary) en lugar de un disco local.
 
 ## Generación comercial con IA
 
@@ -502,3 +519,14 @@ No subas `secret_config.py`, `.env` ni claves reales a Git. En Render configura 
 ## Galería de fotografías
 
 La galería ahora valida la carga de cada imagen antes de contarla y elimina URLs repetidas. Las rutas antiguas que continúen en PostgreSQL pero apunten a archivos inexistentes no se mostrarán. En producción, usa almacenamiento persistente para las imágenes; el sistema de archivos efímero de un servicio web puede perder archivos al reiniciar o desplegar.
+
+
+## Corrección de duplicación en la galería (noviembre de 2026)
+
+- Al abrir un plan existente para editarlo, el frontend limpia los campos `type="file"` y la vista previa de fotos nuevas. Esto evita que una selección que quedó en el navegador de una edición anterior se vuelva a enviar al abrir un plan que regresó de Publicado a Borrador.
+- El guardado de la galería bloquea envíos simultáneos y actualiza la lista local de URLs sin repetir rutas.
+- El backend normaliza cada lote y utiliza `ON CONFLICT DO NOTHING` para que una ruta no se inserte dos veces para el mismo plan.
+- `sql/schema.sql` elimina duplicados históricos de `(id_plan, imagen_url)` conservando la fila más antigua y crea el índice único `uq_imagenes_plan_plan_url`.
+- La fotografía principal continúa almacenándose en `planes.imagen_url`, separada de la tabla `imagenes_plan`.
+
+En desarrollo, `python app.py` llama a `PlanesController.crear_tabla()` y ejecuta el esquema. En una base ya desplegada con Gunicorn/Render, aplica primero un respaldo y ejecuta `sql/migrations/2026_11_gallery_unique.sql` directamente en PostgreSQL; no dependas del arranque de Gunicorn para aplicar migraciones.

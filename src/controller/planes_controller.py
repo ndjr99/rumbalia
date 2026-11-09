@@ -1077,12 +1077,43 @@ class PlanesController:
     def agregar_imagenes_plan(id_plan: int, imagenes_url: list):
         cursor = PlanesController.obtener_cursor()
         try:
-            for url in imagenes_url:
+            # Normalizar el lote y evitar insertar dos veces una misma ruta.
+            # La restricción UNIQUE de (id_plan, imagen_url) protege también
+            # frente a solicitudes repetidas o concurrentes.
+            urls_unicas = list(dict.fromkeys(
+                str(url).strip() for url in (imagenes_url or []) if str(url).strip()
+            ))
+            for url in urls_unicas:
                 cursor.execute(
-                    "INSERT INTO imagenes_plan (id_plan, imagen_url) VALUES (%s, %s);",
+                    """
+                    INSERT INTO imagenes_plan (id_plan, imagen_url)
+                    VALUES (%s, %s)
+                    ON CONFLICT (id_plan, imagen_url) DO NOTHING;
+                    """,
                     (id_plan, url)
                 )
             cursor.connection.commit()
+        except Exception:
+            cursor.connection.rollback()
+            raise
+        finally:
+            PlanesController._cerrar_cursor(cursor)
+
+    @staticmethod
+    def eliminar_imagen_galeria(id_plan: int, imagen_url: str) -> bool:
+        cursor = PlanesController.obtener_cursor()
+        try:
+            cursor.execute(
+                """
+                DELETE FROM imagenes_plan
+                WHERE id_plan = %s AND imagen_url = %s
+                RETURNING id_imagen;
+                """,
+                (id_plan, imagen_url)
+            )
+            eliminada = cursor.fetchone() is not None
+            cursor.connection.commit()
+            return eliminada
         except Exception:
             cursor.connection.rollback()
             raise

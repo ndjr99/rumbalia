@@ -60,14 +60,48 @@ CONTINENTES_VALIDOS = {
 
 EXTENSIONES_VALIDAS = {"jpg", "jpeg", "png", "webp"}
 
-CARPETA_DESTINOS = os.path.join(
-    BASE_DIR,
-    "static",
-    "uploads",
-    "destinos"
+# En Render, configura UPLOAD_FOLDER=/var/data/uploads/destinos y
+# adjunta un Persistent Disk montado en /var/data. Si no se configura,
+# se conserva la ruta local para desarrollo.
+CARPETA_DESTINOS_LEGACY = os.path.join(
+    BASE_DIR, "static", "uploads", "destinos"
 )
-
+CARPETA_DESTINOS = os.path.abspath(
+    os.getenv("UPLOAD_FOLDER", CARPETA_DESTINOS_LEGACY)
+)
 os.makedirs(CARPETA_DESTINOS, exist_ok=True)
+
+
+def migrar_imagenes_locales_a_almacenamiento_persistente():
+    """Copia imágenes locales antiguas al volumen persistente, sin sobrescribir."""
+    if os.path.abspath(CARPETA_DESTINOS) == os.path.abspath(CARPETA_DESTINOS_LEGACY):
+        return
+    if not os.path.isdir(CARPETA_DESTINOS_LEGACY):
+        return
+
+    import shutil
+
+    for nombre in os.listdir(CARPETA_DESTINOS_LEGACY):
+        origen = os.path.join(CARPETA_DESTINOS_LEGACY, nombre)
+        destino = os.path.join(CARPETA_DESTINOS, nombre)
+        if (
+            os.path.isfile(origen)
+            and nombre.lower().rsplit(".", 1)[-1] in EXTENSIONES_VALIDAS
+            and not os.path.exists(destino)
+        ):
+            try:
+                shutil.copy2(origen, destino)
+            except OSError:
+                app.logger.exception("No se pudo migrar la imagen %s al disco persistente", nombre)
+
+
+migrar_imagenes_locales_a_almacenamiento_persistente()
+
+if os.getenv("RENDER") and not os.getenv("UPLOAD_FOLDER"):
+    app.logger.warning(
+        "Rumbalia está en Render pero UPLOAD_FOLDER no está configurado; "
+        "las imágenes se guardarán en el sistema efímero."
+    )
 
 
 # ============================================================
@@ -177,6 +211,12 @@ def validar_imagen_subida(imagen):
 @app.route("/", methods=["GET"])
 def home():
     return send_from_directory(BASE_DIR, "index.html")
+
+
+@app.route("/static/uploads/destinos/<path:filename>", methods=["GET"])
+def servir_imagen_destino(filename):
+    """Sirve las imágenes desde el directorio persistente configurado."""
+    return send_from_directory(CARPETA_DESTINOS, filename)
 
 
 # ============================================================
@@ -911,7 +951,7 @@ def actualizar_imagen_plan(id_plan):
 # GALERÍA DE IMÁGENES DEL PLAN (ASESOR)
 # ============================================================
 
-@app.route("/api/planes/<int:id_plan>/imagenes", methods=["POST"])
+@app.route("/api/planes/<int:id_plan>/imagenes", methods=["POST", "DELETE"])
 def agregar_imagenes_galeria(id_plan):
     usuario, error = requiere_rol("asesor")
     if error:
@@ -924,7 +964,17 @@ def agregar_imagenes_galeria(id_plan):
         if plan.id_asesor != usuario["id_usuario"]:
             return jsonify({"error": "No puedes modificar un plan de otro asesor."}), 403
         if plan.estado != "Borrador":
-            return jsonify({"error": "Solo puedes agregar fotos a un borrador."}), 409
+            return jsonify({"error": "Solo puedes modificar la galería de un borrador."}), 409
+
+        if request.method == "DELETE":
+            datos = request.get_json(silent=True) or {}
+            imagen_url = str(datos.get("imagen_url") or "").strip()
+            if not imagen_url:
+                return jsonify({"error": "No se indicó la fotografía que deseas quitar."}), 400
+            if not PlanesController.eliminar_imagen_galeria(id_plan, imagen_url):
+                return jsonify({"error": "La fotografía ya no existe en la galería."}), 404
+            return jsonify({"mensaje": "Fotografía retirada de la galería."}), 200
+
         archivos = request.files.getlist("imagenes")
         if not archivos or len(archivos) > 8:
             return jsonify({"error": "Selecciona entre 1 y 8 fotografías por carga."}), 400

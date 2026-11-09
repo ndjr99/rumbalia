@@ -82,6 +82,17 @@ CREATE TABLE IF NOT EXISTS imagenes_plan (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Una ruta de imagen solo puede aparecer una vez por plan.
+-- Limpia duplicados históricos conservando el registro más antiguo.
+DELETE FROM imagenes_plan duplicada
+USING imagenes_plan conservada
+WHERE duplicada.id_plan = conservada.id_plan
+  AND duplicada.imagen_url = conservada.imagen_url
+  AND duplicada.id_imagen > conservada.id_imagen;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_imagenes_plan_plan_url
+    ON imagenes_plan (id_plan, imagen_url);
+
 -- =============================================================================
 -- 4. TABLA DE ITINERARIOS
 -- =============================================================================

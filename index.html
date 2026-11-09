@@ -426,6 +426,9 @@
         .galeria-flecha:hover { background:#fff; transform:translateY(-50%) scale(1.06); }
         .galeria-flecha.anterior { left:14px; } .galeria-flecha.siguiente { right:14px; }
         .galeria-miniaturas { display:flex; gap:.65rem; overflow-x:auto; padding:.85rem 2px .35rem; scroll-snap-type:x mandatory; }
+        .galeria-miniatura-item { flex:0 0 108px; display:flex; flex-direction:column; gap:.25rem; }
+        .galeria-miniatura-item img { width:108px; height:68px; object-fit:cover; border-radius:9px; }
+        .galeria-miniatura-item button { width:100%; min-height:28px; padding:.25rem .4rem; border:1px solid #d7deea; border-radius:7px; background:#fff; color:#9b2635; font-size:.78rem; cursor:pointer; }
         .galeria-miniaturas button { flex:0 0 92px; height:68px; padding:0; border:2px solid transparent; border-radius:10px; overflow:hidden; background:#edf2fb; cursor:pointer; scroll-snap-align:start; opacity:.76; transition:border-color .2s, opacity .2s, transform .2s; }
         .galeria-miniaturas button:hover { opacity:1; transform:translateY(-2px); }
         .galeria-miniaturas button.activa { border-color:var(--azul-principal,#15397A); opacity:1; box-shadow:0 0 0 2px rgba(21,57,122,.12); }
@@ -1612,7 +1615,7 @@
 
         <!-- PANTALLA 07: REVISIÓN DE PROPUESTA IA -->
         <section id="vista-asesor-resultado-ia" class="oculto">
-            <h1 class="titulo-seccion" id="titulo-ia-resultado">San Andrés · 5 días</h1>
+            <h1 class="titulo-seccion" id="titulo-ia-resultado">Nuevo plan turístico</h1>
             <div id="editar-aviso-rechazo" class="aviso-rechazo-asesor oculto" role="alert" aria-live="polite">
                 <div class="aviso-rechazo-encabezado"><span aria-hidden="true">!</span><strong>Este plan fue rechazado y necesita correcciones</strong></div>
                 <p>Observaciones del administrador:</p>
@@ -1649,6 +1652,7 @@
                         <label for="editar-galeria-imagenes">Agregar fotos a la galería</label>
                         <input type="file" id="editar-galeria-imagenes" class="input-box" accept=".jpg,.jpeg,.png,.webp" multiple>
                         <small>Puedes seleccionar hasta 8 fotos por carga. JPG, PNG o WEBP; máximo 5 MB cada una.</small>
+                        <div id="editar-galeria-existente" class="galeria-miniaturas"></div>
                         <div id="editar-galeria-preview" class="galeria-miniaturas"></div>
                     </div>
                 </div>
@@ -2468,24 +2472,74 @@
             renderizarGaleriaEn("det-galeria", plan, "detalle");
         }
 
+        let guardandoGaleria = false;
+        let imagenesGaleriaEliminar = [];
+
+        function renderizarGaleriaExistenteEdicion(plan) {
+            const contenedor = document.getElementById("editar-galeria-existente");
+            if (!contenedor) return;
+            const imagenes = Array.from(new Set(plan?.imagenes || []));
+            contenedor.innerHTML = "";
+            imagenes.forEach(url => {
+                const tarjeta = document.createElement("div");
+                tarjeta.className = "galeria-miniatura-item";
+                const img = document.createElement("img");
+                img.src = url;
+                img.alt = "Fotografía guardada en la galería";
+                const boton = document.createElement("button");
+                boton.type = "button";
+                boton.textContent = "Quitar";
+                boton.addEventListener("click", () => {
+                    if (!imagenesGaleriaEliminar.includes(url)) imagenesGaleriaEliminar.push(url);
+                    tarjeta.remove();
+                });
+                tarjeta.append(img, boton);
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
         async function guardarImagenesGaleria() {
+            if (guardandoGaleria) return;
             const campo = document.getElementById("editar-galeria-imagenes");
             const archivos = Array.from(campo?.files || []);
-            if (!archivos.length) return;
+            if (!archivos.length && !imagenesGaleriaEliminar.length) return;
             if (archivos.length > 8) throw new Error("Puedes agregar máximo 8 fotos por carga.");
             const formatos = ["image/jpeg", "image/png", "image/webp"];
             archivos.forEach(file => {
                 if (!formatos.includes(file.type) || file.size > 5 * 1024 * 1024)
                     throw new Error("Cada foto debe ser JPG, PNG o WEBP y pesar máximo 5 MB.");
             });
-            const form = new FormData();
-            archivos.forEach(file => form.append("imagenes", file));
-            const response = await fetch(`${API_URL}/planes/${idPlanActual}/imagenes`, {method:"POST", body:form});
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "No se pudieron guardar las fotos.");
-            planActualObjeto.imagenes = [...(planActualObjeto.imagenes || []), ...(result.imagenes || [])];
-            campo.value = "";
-            mostrarToast(result.mensaje || "Galería actualizada.");
+            if (archivos.length) {
+                const form = new FormData();
+                archivos.forEach(file => form.append("imagenes", file));
+                guardandoGaleria = true;
+                try {
+                    const response = await fetch(`${API_URL}/planes/${idPlanActual}/imagenes`, {method:"POST", body:form});
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || "No se pudieron guardar las fotos.");
+                    const existentes = new Set(planActualObjeto.imagenes || []);
+                    (result.imagenes || []).forEach(url => existentes.add(url));
+                    planActualObjeto.imagenes = Array.from(existentes);
+                    campo.value = "";
+                    mostrarToast(result.mensaje || "Galería actualizada.");
+                } finally {
+                    guardandoGaleria = false;
+                }
+            }
+
+            // Aplicar las eliminaciones marcadas solo al guardar el formulario.
+            for (const imagenUrl of [...imagenesGaleriaEliminar]) {
+                const response = await fetch(`${API_URL}/planes/${idPlanActual}/imagenes`, {
+                    method: "DELETE",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({imagen_url: imagenUrl})
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "No se pudo quitar una fotografía.");
+                planActualObjeto.imagenes = (planActualObjeto.imagenes || []).filter(url => url !== imagenUrl);
+                imagenesGaleriaEliminar = imagenesGaleriaEliminar.filter(url => url !== imagenUrl);
+            }
+            renderizarGaleriaExistenteEdicion(planActualObjeto);
         }
 
         function abrirFormularioSolicitud() {
@@ -2704,8 +2758,20 @@
                 }
 
                 // Recuperar el plan existente.
+                // Los inputs type=file son estado del navegador, no del plan:
+                // limpiarlos evita que una selección anterior se vuelva a subir
+                // al abrir otro borrador (incluido uno que acaba de volver de Publicado).
+                ["editar-imagen", "editar-galeria-imagenes"].forEach(id => {
+                    const campo = document.getElementById(id);
+                    if (campo) campo.value = "";
+                });
+                const previewGaleriaEdicion = document.getElementById("editar-galeria-preview");
+                if (previewGaleriaEdicion) previewGaleriaEdicion.innerHTML = "";
+                imagenesGaleriaEliminar = [];
+
                 planActualObjeto = plan;
                 idPlanActual = plan.id_plan;
+                renderizarGaleriaExistenteEdicion(plan);
                 mostrarImagenActualEdicion(plan.imagen_url);
 
                 // Mostrar el motivo de la última revisión si el plan fue rechazado.
@@ -2720,6 +2786,15 @@
                 // Recuperar nombre y descripción comercial.
                 document.getElementById("editar-nombre-plan").value = plan.nombre || "";
                 document.getElementById("editar-descripcion-plan").value = plan.descripcion || "";
+
+                // Actualizar el encabezado al reabrir un plan devuelto por el administrador.
+                // Evita que permanezca el título estático de ejemplo "San Andrés · 5 días".
+                const tituloResultado = document.getElementById("titulo-ia-resultado");
+                if (tituloResultado) {
+                    const duracionPlan = plan.datos_viajero?.duracion_dias;
+                    tituloResultado.textContent = (plan.nombre || "").trim() ||
+                        `${plan.destino || "Nuevo plan turístico"}${duracionPlan ? ` · ${duracionPlan} días` : ""}`;
+                }
 
                 // Recuperar los datos comerciales.
                 document.getElementById("crear-incluye").value =
