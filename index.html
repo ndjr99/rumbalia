@@ -1891,18 +1891,18 @@
             if (botonSolicitudPlan) botonSolicitudPlan.style.display = (!estadoSesion || estadoSesion.rol === 'cliente') ? '' : 'none';
             if (!estadoSesion) {
                 nav.innerHTML = `
-                    <a onclick="mostrarVista('home')" class="activo">Reservar</a>
-                    <a onclick="mostrarVista('experiencias')">Experiencias</a>
-                    <a onclick="mostrarVista('ofertas')">Ofertas</a>
-                    <a onclick="mostrarVista('nosotros')">Nosotros</a>
+                    <a data-vista="home" onclick="mostrarVista('home')" class="activo">Reservar</a>
+                    <a data-vista="experiencias" onclick="mostrarVista('experiencias')">Experiencias</a>
+                    <a data-vista="ofertas" onclick="mostrarVista('ofertas')">Ofertas</a>
+                    <a data-vista="nosotros" onclick="mostrarVista('nosotros')">Nosotros</a>
                     <button class="btn-nav-login" onclick="mostrarVista('login')">Iniciar sesión</button>
                 `;
             } else if (estadoSesion.rol === 'cliente') {
                 nav.innerHTML = `
-                    <a onclick="mostrarVista('home')">Reservar</a>
-                    <a onclick="mostrarVista('experiencias')">Experiencias</a>
-                    <a onclick="mostrarVista('ofertas')">Ofertas</a>
-                    <a onclick="mostrarVista('nosotros')">Nosotros</a>
+                    <a data-vista="home" onclick="mostrarVista('home')" class="activo">Reservar</a>
+                    <a data-vista="experiencias" onclick="mostrarVista('experiencias')">Experiencias</a>
+                    <a data-vista="ofertas" onclick="mostrarVista('ofertas')">Ofertas</a>
+                    <a data-vista="nosotros" onclick="mostrarVista('nosotros')">Nosotros</a>
                     <div class="avatar-wrap">
                         <div class="user-avatar" title="${estadoSesion.nombre}" onclick="toggleMenuUsuario(event)">👤</div>
                         <div class="menu-usuario oculto" id="dropdown-usuario">
