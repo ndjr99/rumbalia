@@ -2,6 +2,8 @@
 import os
 import sys
 import uuid
+from io import BytesIO
+from urllib.parse import urlparse, unquote
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.join(BASE_DIR, "src")
@@ -60,48 +62,15 @@ CONTINENTES_VALIDOS = {
 
 EXTENSIONES_VALIDAS = {"jpg", "jpeg", "png", "webp"}
 
-# En Render, configura UPLOAD_FOLDER=/var/data/uploads/destinos y
-# adjunta un Persistent Disk montado en /var/data. Si no se configura,
-# se conserva la ruta local para desarrollo.
-CARPETA_DESTINOS_LEGACY = os.path.join(
-    BASE_DIR, "static", "uploads", "destinos"
-)
+# Esta carpeta se utiliza únicamente como alternativa local cuando no hay
+# CLOUDINARY_URL configurada. En Render, las imágenes se guardan en Cloudinary.
 CARPETA_DESTINOS = os.path.abspath(
-    os.getenv("UPLOAD_FOLDER", CARPETA_DESTINOS_LEGACY)
+    os.getenv(
+        "UPLOAD_FOLDER",
+        os.path.join(BASE_DIR, "static", "uploads", "destinos")
+    )
 )
 os.makedirs(CARPETA_DESTINOS, exist_ok=True)
-
-
-def migrar_imagenes_locales_a_almacenamiento_persistente():
-    """Copia imágenes locales antiguas al volumen persistente, sin sobrescribir."""
-    if os.path.abspath(CARPETA_DESTINOS) == os.path.abspath(CARPETA_DESTINOS_LEGACY):
-        return
-    if not os.path.isdir(CARPETA_DESTINOS_LEGACY):
-        return
-
-    import shutil
-
-    for nombre in os.listdir(CARPETA_DESTINOS_LEGACY):
-        origen = os.path.join(CARPETA_DESTINOS_LEGACY, nombre)
-        destino = os.path.join(CARPETA_DESTINOS, nombre)
-        if (
-            os.path.isfile(origen)
-            and nombre.lower().rsplit(".", 1)[-1] in EXTENSIONES_VALIDAS
-            and not os.path.exists(destino)
-        ):
-            try:
-                shutil.copy2(origen, destino)
-            except OSError:
-                app.logger.exception("No se pudo migrar la imagen %s al disco persistente", nombre)
-
-
-migrar_imagenes_locales_a_almacenamiento_persistente()
-
-if os.getenv("RENDER") and not os.getenv("UPLOAD_FOLDER"):
-    app.logger.warning(
-        "Rumbalia está en Render pero UPLOAD_FOLDER no está configurado; "
-        "las imágenes se guardarán en el sistema efímero."
-    )
 
 
 # ============================================================
@@ -202,6 +171,137 @@ def validar_imagen_subida(imagen):
         )
 
     return contenido, extension
+
+
+class AlmacenamientoImagenError(Exception):
+    """Error al guardar una imagen en el almacenamiento permanente."""
+
+
+def obtener_cloudinary_url():
+    """Lee Cloudinary desde Render o desde la configuración local privada."""
+    valor = os.getenv("CLOUDINARY_URL", "").strip()
+    if valor:
+        return valor
+    try:
+        import secret_config
+        return str(getattr(secret_config, "CLOUDINARY_URL", "") or "").strip()
+    except ImportError:
+        return ""
+
+
+def configurar_cloudinary():
+    import cloudinary
+
+    cloudinary_url = obtener_cloudinary_url()
+    if not cloudinary_url:
+        raise RuntimeError("No se encontró CLOUDINARY_URL.")
+
+    datos = urlparse(cloudinary_url)
+    cloud_name = datos.hostname
+    api_key = datos.username
+    api_secret = unquote(datos.password or "")
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise RuntimeError(
+            "La configuración de Cloudinary está incompleta."
+        )
+
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True
+    )
+    return cloudinary
+
+
+def cloudinary_configurado():
+    return bool(obtener_cloudinary_url())
+
+
+def guardar_imagen_permanente(contenido, extension, carpeta="destinos"):
+    """Guarda en Cloudinary en producción o localmente durante desarrollo.
+
+    En Render no permite caer silenciosamente al disco efímero: si falta
+    CLOUDINARY_URL, informa un error para evitar perder fotografías.
+    Devuelve (URL pública, ruta local o None).
+    """
+    if cloudinary_configurado():
+        try:
+            cloudinary = configurar_cloudinary()
+            import cloudinary.uploader
+            resultado = cloudinary.uploader.upload(
+                BytesIO(contenido),
+                folder=f"rumbalia/{carpeta}",
+                resource_type="image",
+                format=extension,
+                unique_filename=True,
+                overwrite=False
+            )
+            url = resultado.get("secure_url")
+            if not url:
+                raise RuntimeError("Cloudinary no devolvió una URL segura para la imagen.")
+            return url, None
+        except Exception as error:
+            app.logger.exception("No fue posible subir la imagen a Cloudinary")
+            raise AlmacenamientoImagenError(
+                "No fue posible guardar la imagen en el almacenamiento permanente. "
+                "Verifica la configuración de Cloudinary e inténtalo nuevamente."
+            ) from error
+
+    if os.getenv("RENDER"):
+        raise AlmacenamientoImagenError(
+            "El almacenamiento de imágenes no está configurado. "
+            "Agrega CLOUDINARY_URL en las variables de entorno de Render."
+        )
+
+    nombre = f"{uuid.uuid4().hex}.{extension}"
+    ruta = os.path.join(CARPETA_DESTINOS, nombre)
+    with open(ruta, "wb") as archivo:
+        archivo.write(contenido)
+    return f"/static/uploads/destinos/{nombre}", ruta
+
+
+def obtener_public_id_cloudinary(imagen_url):
+    """Extrae el public_id de una URL estándar de entrega de Cloudinary."""
+    if not imagen_url or "res.cloudinary.com" not in imagen_url:
+        return None
+    ruta = urlparse(imagen_url).path
+    partes = ruta.split("/upload/", 1)
+    if len(partes) != 2:
+        return None
+    segmentos = partes[1].split("/")
+    # Omite transformaciones y la versión v123... si están presentes.
+    indice_version = next((i for i, parte in enumerate(segmentos) if parte.startswith("v") and parte[1:].isdigit()), None)
+    if indice_version is not None:
+        segmentos = segmentos[indice_version + 1:]
+    else:
+        while segmentos and ("," in segmentos[0] or "_" in segmentos[0] or segmentos[0].startswith("c_")):
+            segmentos.pop(0)
+    if not segmentos:
+        return None
+    nombre = "/".join(segmentos)
+    return nombre.rsplit(".", 1)[0] if "." in nombre.rsplit("/", 1)[-1] else nombre
+
+
+def eliminar_imagen_almacenada(imagen_url):
+    """Elimina una imagen local antigua o un recurso de Cloudinary."""
+    if not imagen_url:
+        return
+    public_id = obtener_public_id_cloudinary(imagen_url)
+    if public_id:
+        if not cloudinary_configurado():
+            app.logger.warning("No se eliminó %s: falta CLOUDINARY_URL", public_id)
+            return
+        try:
+            cloudinary = configurar_cloudinary()
+            import cloudinary.uploader
+            cloudinary.uploader.destroy(public_id, resource_type="image", invalidate=True)
+        except Exception:
+            app.logger.exception("No fue posible eliminar la imagen %s de Cloudinary", public_id)
+        return
+    if imagen_url.startswith("/static/uploads/destinos/"):
+        eliminar_archivo_si_existe(os.path.join(CARPETA_DESTINOS, os.path.basename(imagen_url)))
 
 
 # ============================================================
@@ -544,6 +644,12 @@ def eliminar_borrador_asesor(id_plan):
                 "error": "Solo puedes eliminar planes en borrador o publicados."
             }), 409
 
+        # Conserva las URL antes de eliminar el plan, porque la galería
+        # se elimina en cascada junto con sus registros en PostgreSQL.
+        imagenes_asociadas = set(plan.imagenes or [])
+        if plan.imagen_url:
+            imagenes_asociadas.add(plan.imagen_url)
+
         eliminado = PlanesController.eliminar_plan(id_plan)
 
         if not eliminado:
@@ -551,16 +657,11 @@ def eliminar_borrador_asesor(id_plan):
                 "error": "No se pudo eliminar el plan."
             }), 404
 
-        # Si la imagen era exclusiva del plan, limpiar el archivo local.
-        imagen_plan = plan.imagen_url
-        if (
-            imagen_plan
-            and imagen_plan.startswith("/static/uploads/destinos/")
-            and not PlanesController.imagen_referenciada(imagen_plan)
-        ):
-            eliminar_archivo_si_existe(
-                os.path.join(CARPETA_DESTINOS, os.path.basename(imagen_plan))
-            )
+        # Elimina de Cloudinary únicamente las imágenes que ya no tengan
+        # referencias en otros planes, destinos o galerías.
+        for imagen_url in imagenes_asociadas:
+            if not PlanesController.imagen_referenciada(imagen_url):
+                eliminar_imagen_almacenada(imagen_url)
 
         return jsonify({
             "mensaje": "Plan eliminado correctamente."
@@ -587,6 +688,7 @@ def generar_plan_ia():
         return error
 
     ruta_imagen_guardada = None
+    imagen_url_temporal = None
 
     try:
         datos = request.form
@@ -634,18 +736,10 @@ def generar_plan_ia():
         if imagen and imagen.filename:
             contenido, extension = validar_imagen_subida(imagen)
 
-            nombre_archivo = f"{uuid.uuid4().hex}.{extension}"
-            ruta_imagen_guardada = os.path.join(
-                CARPETA_DESTINOS,
-                nombre_archivo
+            imagen_url, ruta_imagen_guardada = guardar_imagen_permanente(
+                contenido, extension, carpeta="portadas"
             )
-
-            with open(ruta_imagen_guardada, "wb") as archivo:
-                archivo.write(contenido)
-
-            imagen_url = (
-                f"/static/uploads/destinos/{nombre_archivo}"
-            )
+            imagen_url_temporal = imagen_url
 
         # Generar el itinerario.
         nombre_plan, descripcion_plan, itinerario = GeneradorItinerarioIA.generar(
@@ -690,13 +784,26 @@ def generar_plan_ia():
 
         # La imagen ya está asociada al destino y al plan.
         ruta_imagen_guardada = None
+        imagen_url_temporal = None
 
         return jsonify({
             "mensaje": "Plan generado correctamente.",
             "plan": plan_guardado.to_dict()
         }), 201
 
+    except AlmacenamientoImagenError as error:
+        if imagen_url_temporal:
+            eliminar_imagen_almacenada(imagen_url_temporal)
+        if ruta_imagen_guardada:
+            eliminar_archivo_si_existe(ruta_imagen_guardada)
+        return jsonify({
+            "error": str(error),
+            "codigo": "ALMACENAMIENTO_NO_DISPONIBLE"
+        }), 503
+
     except TimeoutError as error:
+        if imagen_url_temporal:
+            eliminar_imagen_almacenada(imagen_url_temporal)
         if (
             ruta_imagen_guardada
             and os.path.exists(ruta_imagen_guardada)
@@ -710,6 +817,8 @@ def generar_plan_ia():
         }), 504
 
     except ValueError as error:
+        if imagen_url_temporal:
+            eliminar_imagen_almacenada(imagen_url_temporal)
         if (
             ruta_imagen_guardada
             and os.path.exists(ruta_imagen_guardada)
@@ -723,6 +832,8 @@ def generar_plan_ia():
         }), 400
 
     except RuntimeError as error:
+        if imagen_url_temporal:
+            eliminar_imagen_almacenada(imagen_url_temporal)
         if (
             ruta_imagen_guardada
             and os.path.exists(ruta_imagen_guardada)
@@ -741,6 +852,8 @@ def generar_plan_ia():
         }), 502
 
     except Exception:
+        if imagen_url_temporal:
+            eliminar_imagen_almacenada(imagen_url_temporal)
         if (
             ruta_imagen_guardada
             and os.path.exists(ruta_imagen_guardada)
@@ -889,6 +1002,7 @@ def actualizar_imagen_plan(id_plan):
         return error
 
     ruta_nueva = None
+    nueva_url_temporal = None
     try:
         plan = PlanesController.buscar_plan(id_plan)
         if not plan:
@@ -909,27 +1023,22 @@ def actualizar_imagen_plan(id_plan):
             }), 400
 
         contenido, extension = validar_imagen_subida(imagen)
-        nombre_archivo = f"{uuid.uuid4().hex}.{extension}"
-        ruta_nueva = os.path.join(CARPETA_DESTINOS, nombre_archivo)
-        with open(ruta_nueva, "wb") as archivo:
-            archivo.write(contenido)
-
-        nueva_url = f"/static/uploads/destinos/{nombre_archivo}"
+        nueva_url, ruta_nueva = guardar_imagen_permanente(
+            contenido, extension, carpeta="portadas"
+        )
+        nueva_url_temporal = nueva_url
         imagen_anterior = PlanesController.actualizar_imagen_plan(
             id_plan, nueva_url
         )
 
-        # Eliminar la anterior solo si era un archivo local y ya no está referenciada.
+        # El recurso anterior se elimina únicamente si ya no tiene referencias.
+        nueva_url_temporal = None
         if (
             imagen_anterior
-            and imagen_anterior.startswith("/static/uploads/destinos/")
             and imagen_anterior != nueva_url
             and not PlanesController.imagen_referenciada(imagen_anterior)
         ):
-            nombre_anterior = os.path.basename(imagen_anterior)
-            eliminar_archivo_si_existe(
-                os.path.join(CARPETA_DESTINOS, nombre_anterior)
-            )
+            eliminar_imagen_almacenada(imagen_anterior)
 
         return jsonify({
             "mensaje": "Imagen del plan actualizada correctamente.",
@@ -938,9 +1047,13 @@ def actualizar_imagen_plan(id_plan):
 
     except ValueError as error:
         eliminar_archivo_si_existe(ruta_nueva)
+        if nueva_url_temporal:
+            eliminar_imagen_almacenada(nueva_url_temporal)
         return jsonify({"error": str(error)}), 400
     except Exception:
         eliminar_archivo_si_existe(ruta_nueva)
+        if nueva_url_temporal:
+            eliminar_imagen_almacenada(nueva_url_temporal)
         app.logger.exception("Error al actualizar la imagen del plan")
         return jsonify({
             "error": "No fue posible actualizar la imagen del plan."
@@ -957,6 +1070,7 @@ def agregar_imagenes_galeria(id_plan):
     if error:
         return error
     rutas_guardadas = []
+    urls_guardadas = []
     try:
         plan = PlanesController.buscar_plan(id_plan)
         if not plan:
@@ -973,6 +1087,8 @@ def agregar_imagenes_galeria(id_plan):
                 return jsonify({"error": "No se indicó la fotografía que deseas quitar."}), 400
             if not PlanesController.eliminar_imagen_galeria(id_plan, imagen_url):
                 return jsonify({"error": "La fotografía ya no existe en la galería."}), 404
+            if not PlanesController.imagen_referenciada(imagen_url):
+                eliminar_imagen_almacenada(imagen_url)
             return jsonify({"mensaje": "Fotografía retirada de la galería."}), 200
 
         archivos = request.files.getlist("imagenes")
@@ -983,12 +1099,13 @@ def agregar_imagenes_galeria(id_plan):
             if not imagen or not imagen.filename:
                 continue
             contenido, extension = validar_imagen_subida(imagen)
-            nombre = f"{uuid.uuid4().hex}.{extension}"
-            ruta = os.path.join(CARPETA_DESTINOS, nombre)
-            with open(ruta, "wb") as archivo:
-                archivo.write(contenido)
-            rutas_guardadas.append(ruta)
-            urls.append(f"/static/uploads/destinos/{nombre}")
+            url, ruta = guardar_imagen_permanente(
+                contenido, extension, carpeta="galeria"
+            )
+            if ruta:
+                rutas_guardadas.append(ruta)
+            urls_guardadas.append(url)
+            urls.append(url)
         if not urls:
             return jsonify({"error": "No se recibieron imágenes válidas."}), 400
         PlanesController.agregar_imagenes_plan(id_plan, urls)
@@ -996,10 +1113,14 @@ def agregar_imagenes_galeria(id_plan):
     except ValueError as error:
         for ruta in rutas_guardadas:
             eliminar_archivo_si_existe(ruta)
+        for url in urls_guardadas:
+            eliminar_imagen_almacenada(url)
         return jsonify({"error": str(error)}), 400
     except Exception:
         for ruta in rutas_guardadas:
             eliminar_archivo_si_existe(ruta)
+        for url in urls_guardadas:
+            eliminar_imagen_almacenada(url)
         app.logger.exception("Error al agregar fotografías a la galería")
         return jsonify({"error": "No fue posible guardar las fotografías."}), 500
 

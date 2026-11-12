@@ -1062,9 +1062,11 @@ class PlanesController:
                     SELECT 1 FROM planes WHERE imagen_url = %s
                     UNION ALL
                     SELECT 1 FROM destinos WHERE imagen_url = %s
+                    UNION ALL
+                    SELECT 1 FROM imagenes_plan WHERE imagen_url = %s
                 );
                 """,
-                (imagen_url, imagen_url)
+                (imagen_url, imagen_url, imagen_url)
             )
             return bool(cursor.fetchone()[0])
         finally:
