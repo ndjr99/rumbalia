@@ -1,6 +1,10 @@
 # RUMBALIA – Plataforma Inteligente de Planes Turísticos
 
-Aplicación web para la creación, consulta y administración de planes turísticos personalizados mediante inteligencia artificial. El sistema permite conectar a clientes, asesores turísticos y administradores a través de una plataforma desarrollada con Python, Flask, PostgreSQL, HTML, CSS y JavaScript.
+Aplicación web para la creación, consulta y administración de planes turísticos personalizados mediante inteligencia artificial. Rumbalia conecta a clientes, asesores turísticos y administradores a través de una plataforma que facilita el diseño de experiencias de viaje, la generación de itinerarios, la revisión de propuestas y la publicación de planes turísticos.
+
+Los asesores pueden crear planes con ayuda de inteligencia artificial, generar nombres comerciales, descripciones e itinerarios, y editar su contenido antes de enviarlo a revisión. Los administradores supervisan y gestionan la publicación de los planes, mientras que los clientes pueden explorar destinos, consultar experiencias y enviar solicitudes de contacto.
+
+La plataforma está desarrollada con Python, Flask, PostgreSQL, HTML, CSS y JavaScript, e integra la API de Groq para la generación de contenido turístico mediante inteligencia artificial.
 
 ## Autores
 
@@ -12,13 +16,13 @@ Aplicación web para la creación, consulta y administración de planes turísti
 
 ## 1. Descripción del proyecto
 
-Rumbalia es una plataforma web orientada a facilitar la creación y consulta de experiencias turísticas personalizadas. Permite que los asesores diseñen planes de viaje con ayuda de inteligencia artificial, que los administradores supervisen y gestionen su publicación y que los clientes exploren los planes disponibles y soliciten información.
+Rumbalia es una plataforma web orientada a facilitar la creación y consulta de experiencias turísticas personalizadas. Su propósito es conectar a clientes interesados en viajar con asesores encargados de diseñar planes turísticos y administradores responsables de supervisar su publicación.
 
 La aplicación contempla tres roles principales:
 
 - **Cliente:** explora los planes turísticos publicados, consulta sus características e itinerarios y puede enviar solicitudes de contacto sin necesidad de crear una cuenta.
-- **Asesor:** crea planes turísticos, genera itinerarios mediante inteligencia artificial, edita la información, administra borradores, envía planes a revisión y gestiona las solicitudes de los clientes.
-- **Administrador:** supervisa los planes enviados a revisión, aprueba o rechaza propuestas, consulta estadísticas, administra las cuentas de usuario y gestiona las solicitudes de contacto.
+- **Asesor:** crea planes turísticos, genera nombres comerciales, descripciones e itinerarios mediante inteligencia artificial, edita la información, administra borradores, envía planes a revisión y gestiona las solicitudes de los clientes.
+- **Administrador:** supervisa los planes enviados a revisión, aprueba o rechaza propuestas, consulta estadísticas, administra las cuentas de usuario, reasigna planes cuando es necesario y gestiona las solicitudes de contacto.
 
 ## 2. Funcionalidades del MVP
 
@@ -41,19 +45,22 @@ La aplicación contempla tres roles principales:
 - Consulta de ofertas disponibles.
 - Visualización de la información institucional de Rumbalia.
 - Envío de solicitudes de contacto desde los planes publicados, sin necesidad de iniciar sesión.
+- Autocompletado del nombre y correo electrónico al abrir el formulario de solicitud con una sesión de cliente activa. Estos datos pueden modificarse antes del envío.
+- Ingreso manual de los datos de contacto para visitantes que no hayan iniciado sesión.
 - Confirmación del envío de la solicitud.
 
 ### 2.3. Funcionalidades del asesor
 
 - Creación de planes turísticos.
-- Generación de itinerarios mediante inteligencia artificial.
-- Edición de la información comercial del plan.
-- Edición de los días y descripciones del itinerario.
+- Generación de nombres comerciales, descripciones e itinerarios mediante inteligencia artificial.
+- Edición del nombre comercial y la descripción del plan.
+- Edición de los días y las actividades del itinerario.
 - Guardado y consulta de borradores.
 - Envío de planes para revisión administrativa.
 - Regreso de planes rechazados al estado de borrador.
 - Actualización de la imagen principal de un plan.
 - Administración de la galería de imágenes.
+- Validación de imágenes cargadas y control de rutas duplicadas en la galería.
 - Eliminación de planes en estado Borrador o Publicado.
 - Consulta de reportes propios.
 - Consulta de solicitudes recibidas para sus planes.
@@ -71,6 +78,9 @@ La aplicación contempla tres roles principales:
 - Creación de cuentas de asesores y administradores.
 - Activación y desactivación de cuentas.
 - Eliminación lógica y anonimización de cuentas de usuario, conservando la integridad de los registros relacionados.
+- Consulta de planes pendientes de reasignación cuando se elimina un asesor.
+- Asignación de planes conservados a asesores activos.
+- Registro del historial de reasignaciones.
 - Consulta de reportes generales.
 - Consulta y gestión de todas las solicitudes de contacto.
 - Filtrado de solicitudes por estado, asesor y fechas de recepción.
@@ -91,26 +101,32 @@ El flujo general es:
 
 1. El asesor crea un plan.
 2. El plan se guarda como borrador.
-3. El asesor completa la información y el itinerario.
+3. El asesor completa la información comercial y el itinerario.
 4. El asesor envía el plan a revisión.
 5. El administrador aprueba o rechaza la propuesta.
 6. Si se aprueba, el plan pasa a estado Publicado.
-7. Si se rechaza, el plan regresa a estado Borrador para que el asesor pueda corregirlo.
+7. Si se rechaza, el plan regresa a estado Borrador para que el asesor pueda corregirlo y enviarlo nuevamente.
 
 Los planes pendientes no pueden eliminarse mientras se encuentran en revisión. Los asesores pueden eliminar sus propios borradores y planes publicados.
+
+Cuando se elimina una cuenta de asesor, sus planes se conservan para que un administrador pueda asignarlos a otro asesor activo. Las reasignaciones quedan registradas en el historial correspondiente.
 
 ## 4. Gestión de solicitudes de contacto
 
 Rumbalia permite que los visitantes manifiesten interés en los planes turísticos publicados mediante un formulario de contacto.
 
-El visitante proporciona:
+El formulario solicita:
 
 - Nombre.
 - Correo electrónico.
 - Número de teléfono.
 - Mensaje opcional.
 
-La solicitud queda almacenada en PostgreSQL y asociada al plan seleccionado.
+Cuando un cliente ha iniciado sesión, el formulario puede completar automáticamente su nombre y correo electrónico con los datos de su cuenta. Estos campos permanecen editables. El número de teléfono se ingresa manualmente.
+
+Los visitantes sin sesión también pueden enviar solicitudes proporcionando sus datos de contacto.
+
+La solicitud queda almacenada en PostgreSQL y asociada al plan seleccionado. Las solicitudes pueden ser consultadas y gestionadas por los usuarios autorizados según su rol.
 
 ### Estados de las solicitudes
 
@@ -125,6 +141,7 @@ La solicitud queda almacenada en PostgreSQL y asociada al plan seleccionado.
 - El asesor consulta únicamente las solicitudes relacionadas con sus propios planes.
 - El administrador puede consultar todas las solicitudes.
 - Los usuarios autorizados pueden actualizar el estado de una solicitud.
+- Las sesiones de asesor y administrador no pueden enviar solicitudes como clientes.
 - Las solicitudes pueden archivarse y desarchivarse.
 - Las solicitudes archivadas se conservan en el historial.
 - Se puede realizar la eliminación definitiva de una solicitud.
@@ -161,7 +178,7 @@ La búsqueda normaliza mayúsculas y tildes para facilitar la localización de d
 
 ### Ofertas
 
-La sección Ofertas presenta el espacio destinado a las promociones de planes turísticos.
+La sección Ofertas presenta las promociones de planes turísticos.
 
 El sistema permite consultar las ofertas que tengan un descuento configurado y cuya vigencia corresponda a la fecha actual. Si no existen promociones activas, se informa al visitante sin mostrar descuentos ficticios.
 
@@ -182,7 +199,7 @@ La estructura de la base de datos contempla:
 | HTML5 | Estructura de la interfaz. |
 | CSS3 | Diseño visual y estilos adaptables. |
 | JavaScript | Interactividad y comunicación con la API. |
-| Groq API | Servicio de inteligencia artificial para generar itinerarios. |
+| Groq API | Servicio de inteligencia artificial para generar nombres comerciales, descripciones e itinerarios. |
 | OpenAI Python SDK | Cliente compatible utilizado para comunicarse con la API de Groq. |
 | Werkzeug | Funciones de seguridad para el manejo de contraseñas. |
 | Flask-CORS | Configuración de solicitudes entre orígenes. |
@@ -193,12 +210,11 @@ La estructura de la base de datos contempla:
 
 El proyecto utiliza una arquitectura organizada por responsabilidades:
 
-- **Modelo (`src/model/logic.py`):** contiene las clases y reglas de negocio de usuarios, datos del viajero, planes turísticos, itinerarios, generación mediante IA y revisiones.
+- **Modelo (`src/model/logic.py`):** contiene las clases y reglas de negocio relacionadas con usuarios, planes turísticos, itinerarios, generación mediante IA y revisiones.
 - **Controlador (`src/controller/planes_controller.py`):** gestiona las consultas, operaciones de persistencia y comunicación con PostgreSQL.
 - **Backend (`app.py`):** implementa las rutas de la aplicación, autenticación, control de permisos, validaciones y comunicación entre frontend y controlador.
 - **Frontend (`index.html`):** contiene la interfaz desarrollada con HTML, CSS y JavaScript.
-- **Base de datos (`sql/schema.sql`):** define las tablas, relaciones, restricciones y datos iniciales.
-- **Base de datos (`sql/`):** contiene el esquema principal de PostgreSQL (`schema.sql`).
+- **Base de datos (`sql/schema.sql`):** define las tablas, relaciones, restricciones, índices y datos iniciales.
 - **Pruebas (`test/`):** contiene pruebas automatizadas del modelo.
 
 ## 8. Estructura de carpetas
@@ -214,8 +230,7 @@ Turismo/
 ├── .gitignore
 │
 ├── sql/
-│   ├── schema.sql
-
+│   └── schema.sql
 │
 ├── src/
 │   ├── model/
@@ -245,7 +260,7 @@ Para ejecutar el proyecto se necesita:
 - Python 3.
 - PostgreSQL.
 - Una base de datos PostgreSQL accesible.
-- Una clave de API de Groq para utilizar la generación de itinerarios.
+- Una clave de API de Groq para utilizar la generación de contenido mediante inteligencia artificial.
 - Las dependencias especificadas en `requirements.txt`.
 
 ## 10. Instalación y configuración local
@@ -273,48 +288,52 @@ source venv/bin/activate
 ### 10.3. Instalar las dependencias
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### 10.4. Configurar PostgreSQL
+### 10.4. Configurar las variables de entorno
 
-Crear una base de datos PostgreSQL y preparar el archivo de configuración local.
+La aplicación utiliza variables de entorno para gestionar las credenciales de PostgreSQL y Groq.
 
-Copiar:
+Configurar las siguientes variables:
 
-```text
-secret_config_sample.py
-```
+| Variable | Descripción |
+|---|---|
+| `PGHOST` | Dirección del servidor PostgreSQL. |
+| `PGDATABASE` | Nombre de la base de datos. |
+| `PGUSER` | Usuario de PostgreSQL. |
+| `PGPASSWORD` | Contraseña de PostgreSQL. |
+| `PGPORT` | Puerto de conexión de PostgreSQL. |
+| `GROQ_API_KEY` | Clave de acceso a la API de Groq. |
+| `SECRET_KEY` | Clave secreta utilizada por Flask para gestionar las sesiones. |
 
-y crear una copia llamada:
+El archivo `secret_config_sample.py` contiene una plantilla que permite leer los valores desde las variables de entorno. Si el proyecto requiere el módulo `secret_config.py`, se puede crear una copia de la plantilla con ese nombre.
 
-```text
-secret_config.py
-```
-
-Configurar los valores de conexión:
-
-Configura estos valores mediante variables de entorno (`PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT` y `GROQ_API_KEY`). También puedes copiar `secret_config_sample.py` como `secret_config.py`; la plantilla lee las variables de entorno y no contiene credenciales reales.
-
-El archivo `secret_config.py` contiene información sensible y no debe subirse al repositorio ni compartirse públicamente.
+No se deben incluir credenciales reales en el repositorio ni compartir públicamente el archivo `secret_config.py`.
 
 ### 10.5. Configurar la inteligencia artificial
 
-Rumbalia utiliza Groq para generar itinerarios turísticos mediante un modelo compatible con la API de OpenAI.
+Rumbalia utiliza Groq para generar contenido turístico mediante un modelo compatible con la API de OpenAI.
 
-La clave se configura mediante:
+La clave de acceso se proporciona mediante la variable de entorno:
 
-```python
-GROQ_API_KEY = "CLAVE_DE_GROQ"
+```text
+GROQ_API_KEY
 ```
 
-También puede proporcionarse mediante una variable de entorno con el mismo nombre.
+La generación mediante IA permite obtener:
 
-Sin una clave válida, las funcionalidades de generación mediante IA no estarán disponibles.
+- Nombre comercial del plan.
+- Descripción del viaje para el cliente.
+- Itinerario organizado por días y actividades.
+
+El asesor puede revisar y editar el nombre, la descripción y el itinerario antes de enviar el plan a revisión administrativa.
+
+Sin una clave válida y acceso al servicio de Groq, las funcionalidades de generación mediante IA no estarán disponibles.
 
 ## 11. Base de datos
 
-Rumbalia utiliza PostgreSQL para almacenar usuarios, destinos, planes, itinerarios, solicitudes y revisiones administrativas.
+Rumbalia utiliza PostgreSQL para almacenar usuarios, destinos, planes, itinerarios, imágenes, solicitudes de contacto y revisiones administrativas.
 
 ### Tablas principales
 
@@ -322,12 +341,13 @@ Rumbalia utiliza PostgreSQL para almacenar usuarios, destinos, planes, itinerari
 |---|---|
 | `usuarios` | Almacena los usuarios, credenciales, roles y estado de las cuentas. |
 | `destinos` | Contiene los destinos turísticos disponibles. |
-| `planes` | Almacena los planes turísticos creados por los asesores. |
+| `planes` | Almacena los planes turísticos creados por los asesores, incluyendo su información comercial y descripción. |
 | `imagenes_plan` | Almacena las fotografías asociadas a cada plan. |
 | `itinerarios` | Relaciona cada plan con su itinerario. |
 | `dias_itinerario` | Almacena las actividades correspondientes a cada día. |
 | `revisiones` | Registra las decisiones administrativas sobre los planes. |
-| `solicitudes_contacto` | Almacena las solicitudes enviadas por los visitantes y su seguimiento. |
+| `solicitudes_contacto` | Almacena las solicitudes enviadas por visitantes y clientes, así como su seguimiento. |
+| `historial_asignaciones_planes` | Registra las reasignaciones de planes entre asesores. |
 
 ### Relaciones y consideraciones
 
@@ -338,8 +358,9 @@ Rumbalia utiliza PostgreSQL para almacenar usuarios, destinos, planes, itinerari
 - Cada plan puede tener varias imágenes.
 - Las solicitudes de contacto están relacionadas con el plan de interés.
 - Las revisiones están relacionadas con los planes y los administradores responsables.
+- El historial de asignaciones permite consultar los cambios de asesor responsable de un plan.
 
-Las relaciones que corresponden utilizan claves foráneas para mantener la integridad de los datos. La eliminación de un plan también elimina los registros dependientes configurados con `ON DELETE CASCADE`.
+Las relaciones correspondientes utilizan claves foráneas para mantener la integridad de los datos. La eliminación de un plan también elimina los registros dependientes configurados con `ON DELETE CASCADE`.
 
 ### Inicialización de una base de datos nueva
 
@@ -357,9 +378,23 @@ la aplicación también intenta ejecutar `PlanesController.crear_tabla()`, que p
 
 **Importante:** el script incluye datos iniciales de prueba y operaciones de preparación de destinos y planes. Antes de ejecutarlo sobre una base de datos que ya contiene información real, realiza un respaldo y revisa las operaciones del script.
 
+### Actualización de bases de datos existentes
+
+La tabla `planes` utiliza la columna `descripcion` para almacenar la descripción comercial de cada plan.
+
+Si una base de datos existente no cuenta con esta columna, ejecutar una sola vez:
+
+```sql
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;
+```
+
+Esta operación agrega la columna sin eliminar las tablas ni los registros existentes.
+
+La tabla `historial_asignaciones_planes` forma parte del esquema de la aplicación y se utiliza para registrar las reasignaciones de planes.
+
 ## 12. Ejecución local
 
-Desde la carpeta raíz `Turismo/`, con el entorno virtual activado:
+Desde la carpeta raíz `Turismo/`, con el entorno virtual activado y las variables de entorno configuradas:
 
 ```bash
 python app.py
@@ -394,21 +429,65 @@ Configurar en Render las variables necesarias:
 ```text
 SECRET_KEY
 GROQ_API_KEY
+PGHOST
+PGDATABASE
+PGUSER
+PGPASSWORD
+PGPORT
 ```
 
-También se pueden configurar las variables de conexión de PostgreSQL si se utiliza el archivo de configuración de ejemplo basado en variables de entorno.
+Los valores de conexión deben corresponder a la base de datos PostgreSQL utilizada por la aplicación.
+
+### Configuración de fotografías y almacenamiento persistente
+
+Las fotografías de los planes se guardan en la ubicación definida por la variable `UPLOAD_FOLDER`.
+
+En desarrollo local, si no se define esta variable, Rumbalia utiliza:
+
+```text
+static/uploads/destinos
+```
+
+En Render, el sistema de archivos predeterminado es efímero. Esto significa que los archivos guardados localmente pueden perderse cuando el servicio se reinicia o se despliega nuevamente.
+
+Para conservar las fotografías se recomienda configurar un Persistent Disk:
+
+1. En el Dashboard de Render, abre el servicio web de Rumbalia y entra a **Disks**.
+2. Agrega un Persistent Disk. Esta funcionalidad requiere un plan de servicio compatible. Los discos persistentes no están disponibles en el plan Free.
+3. Configura el **Mount Path** con el valor:
+
+   ```text
+   /var/data
+   ```
+
+4. En **Environment**, agrega la variable:
+
+   ```text
+   UPLOAD_FOLDER=/var/data/uploads/destinos
+   ```
+
+5. Guarda los cambios y espera a que termine el nuevo despliegue.
+6. Crea un plan de prueba con una imagen principal y varias fotografías en la galería. Comprueba que sigan disponibles después de reiniciar o desplegar nuevamente el servicio.
+
+La aplicación conserva las rutas públicas de las fotografías bajo `/static/uploads/destinos/...` y utiliza `UPLOAD_FOLDER` como ubicación física de almacenamiento. También puede realizar una migración de archivos locales existentes hacia el almacenamiento persistente cuando estos todavía están disponibles.
+
+**Importante:** un Persistent Disk de Render está conectado a una sola instancia y no permite escalar horizontalmente el servicio a varias instancias. Si se necesita utilizar varias instancias o un plan sin discos persistentes, se recomienda implementar un servicio de almacenamiento de objetos externo, como Amazon S3 o Cloudinary.
 
 ### Archivo secreto de PostgreSQL
 
-Si se utiliza el mecanismo de archivo secreto, crear en Render un Secret File con el nombre:
+Como alternativa a las variables de entorno individuales, si se utiliza el mecanismo de archivos secretos de Render, se puede crear un Secret File con el nombre:
 
 ```text
 secret_config.py
 ```
 
-El archivo debe contener los parámetros de conexión a PostgreSQL y la clave de Groq.
+Este archivo debe contener los parámetros de conexión a PostgreSQL y la clave de Groq, siguiendo la estructura que espera la aplicación.
 
-La aplicación busca este archivo en `/etc/secrets/`.
+Cuando se utiliza este mecanismo, la aplicación busca el archivo en:
+
+```text
+/etc/secrets/
+```
 
 No se debe subir `secret_config.py` al repositorio de GitHub.
 
@@ -418,8 +497,8 @@ No se debe subir `secret_config.py` al repositorio de GitHub.
 - Se debe verificar que la conexión a PostgreSQL funcione desde el servicio desplegado.
 - El comando de inicio utiliza Gunicorn.
 - Gunicorn importa la aplicación mediante `app:app`; por ello, no ejecuta el bloque `if __name__ == "__main__"` de `app.py`.
-- La base de datos debe estar inicializada previamente con el esquema principal de la base de datos.
-- Las imágenes cargadas en el almacenamiento local del servicio pueden perderse al reiniciar o desplegar nuevamente el servicio, salvo que se configure almacenamiento persistente o externo.
+- La base de datos debe estar inicializada previamente con el esquema principal.
+- Se debe configurar el almacenamiento persistente o externo para conservar las fotografías entre despliegues.
 
 ## 14. Pruebas automatizadas
 
@@ -446,6 +525,7 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 - El registro público permite crear cuentas únicamente con rol de cliente.
 - Los roles de asesor y administrador son gestionados desde el panel administrativo.
 - Las operaciones de los asesores deben limitarse a sus propios planes y solicitudes.
+- Las sesiones de asesor y administrador no pueden utilizar las funcionalidades destinadas al envío de solicitudes como cliente.
 - Las consultas SQL utilizan parámetros para reducir el riesgo de inyección SQL.
 - Las claves de PostgreSQL y Groq deben mantenerse fuera del repositorio.
 - Se recomienda utilizar una `SECRET_KEY` segura y diferente para producción.
@@ -455,10 +535,10 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 
 ## 16. Consideraciones y limitaciones del MVP
 
-- La generación de itinerarios depende de la disponibilidad de la API de Groq y de una clave válida.
+- La generación de nombres comerciales, descripciones e itinerarios depende de la disponibilidad de la API de Groq y de una clave válida.
 - Los resultados generados mediante inteligencia artificial deben ser revisados por el asesor antes de enviarse a aprobación.
 - Las ofertas solo se muestran cuando tienen descuentos y fechas de vigencia configurados.
-- Las imágenes se almacenan en `UPLOAD_FOLDER`; en desarrollo se usa `static/uploads/destinos` y en Render debe apuntar a un Persistent Disk o a un almacenamiento de objetos externo.
+- Las imágenes se almacenan en `UPLOAD_FOLDER`; en desarrollo se utiliza `static/uploads/destinos` y en Render se recomienda configurar un Persistent Disk o un almacenamiento de objetos externo.
 - Las solicitudes de contacto son gestionadas dentro de la plataforma; el registro de una solicitud no implica que se haya enviado automáticamente un correo electrónico al cliente.
 - El proyecto corresponde a un producto mínimo viable (MVP), por lo que puede ampliarse con nuevas funcionalidades en versiones posteriores.
 
@@ -468,65 +548,4 @@ Las pruebas que requieran PostgreSQL deben realizarse sobre una base de datos de
 
 **Versión:** MVP.
 
-**Tecnologías principales:** Python, Flask, PostgreSQL, HTML, CSS y JavaScript.\n\n### Nombre y descripción comercial de los planes\n\nDurante la creación, el asesor puede escribir un nombre comercial para el plan. Si no lo especifica, Rumbalia conserva el nombre sugerido por destino y duración. La IA genera tanto el itinerario como una descripción comercial del viaje; el asesor puede editar ambos textos antes de enviar el plan a revisión. La descripción se muestra debajo de la galería de imágenes en el detalle público.\n\nLa tabla `planes` incluye la columna `descripcion`. En bases de datos ya existentes, ejecutar una sola vez `ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;` antes de desplegar esta versión. Esta actualización no requiere eliminar ni recrear tablas o registros.\n
-
-
-## Almacenamiento persistente de fotografías en Render
-
-Las fotografías de los planes se guardan en `UPLOAD_FOLDER`. En desarrollo local, si no se define esta variable, Rumbalia utiliza `static/uploads/destinos`. En Render **no basta con guardar los archivos en el proyecto**, porque el sistema de archivos predeterminado es efímero y puede perder cambios en reinicios o despliegues.
-
-Para conservar las imágenes en Render:
-
-1. En el Dashboard de Render, abre el servicio web de Rumbalia y entra a **Disks**.
-2. Agrega un Persistent Disk (requiere un plan de servicio compatible; los discos persistentes no están disponibles en el plan Free). Usa como **Mount Path** `/var/data` y un tamaño inicial acorde al volumen de fotografías (por ejemplo, 1 GB).
-3. En **Environment**, agrega `UPLOAD_FOLDER` con el valor `/var/data/uploads/destinos`.
-4. Guarda los cambios y espera a que termine el nuevo deploy.
-5. Crea un plan de prueba con una imagen principal y varias fotos de galería. Verifica que se vean después de reiniciar o desplegar nuevamente.
-
-El código conserva las URLs antiguas `/static/uploads/destinos/...`, pero ahora las sirve desde `UPLOAD_FOLDER`, por lo que no es necesario modificar los registros existentes en PostgreSQL. Al iniciar, también intenta copiar al disco persistente cualquier imagen que todavía exista en la carpeta local antigua, sin sobrescribir archivos. Esta migración automática es de mejor esfuerzo: no puede recuperar archivos que Render ya haya eliminado antes de conectar el disco.
-
-**Importante:** un Persistent Disk de Render está conectado a una sola instancia y no permite escalar horizontalmente el servicio a varias instancias. Si Rumbalia necesita varias instancias o utiliza el plan Free, conviene usar almacenamiento de objetos externo (por ejemplo, S3 o Cloudinary) en lugar de un disco local.
-
-## Generación comercial con IA
-
-Al generar un plan, Groq devuelve ahora tres componentes: nombre comercial, descripción para el viajero e itinerario. El nombre y la descripción se muestran en el formulario de revisión para que el asesor pueda editarlos antes de continuar. Ambos campos se guardan junto con el plan y la descripción aparece debajo de la galería en el detalle público.
-
-La columna `planes.descripcion` ya está contemplada en `sql/schema.sql`. Si la base de datos existente no la tiene, ejecutar una sola vez:
-
-```sql
-ALTER TABLE planes ADD COLUMN IF NOT EXISTS descripcion TEXT;
-```
-
-## Corrección de generación de itinerarios con IA
-
-Se corrigió la lectura de la respuesta de Groq para reconocer correctamente los campos `NOMBRE` y `DESCRIPCION`, además de encabezados de día con formatos comunes (por ejemplo, `Día 1:`, `**Día 1:**` o `### Día 1:`). La validación continúa exigiendo exactamente la cantidad de días solicitada.
-
-## Reasignación de planes y permisos de solicitudes
-
-- Cuando se elimina un asesor, sus planes se conservan y aparecen en **Usuarios → Planes pendientes de reasignación** para que un administrador los asigne a un asesor activo.
-- Cada reasignación se registra en `historial_asignaciones_planes` (plan, asesor anterior, nuevo asesor, administrador y fecha). La tabla se crea automáticamente al consultar la sección y también está incluida en `sql/schema.sql`.
-- Las solicitudes de interés se pueden enviar como visitante o desde una cuenta cliente. Las sesiones de asesor y administrador reciben HTTP 403 tanto si intentan abrir el formulario como si llaman directamente al endpoint.
-
-## Configuración local segura
-
-1. Instala las dependencias: `python -m pip install -r requirements.txt`.
-2. Copia `secret_config_sample.py` como `secret_config.py` en la raíz del proyecto.
-3. Define las variables `PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT` y `GROQ_API_KEY` en el entorno antes de iniciar la aplicación. El archivo `secret_config.py` no se incluye en el ZIP por seguridad.
-4. Inicia el servidor con `python app.py`.
-
-No subas `secret_config.py`, `.env` ni claves reales a Git. En Render configura esas variables en el panel de Environment o usa un secret file.
-
-## Galería de fotografías
-
-La galería ahora valida la carga de cada imagen antes de contarla y elimina URLs repetidas. Las rutas antiguas que continúen en PostgreSQL pero apunten a archivos inexistentes no se mostrarán. En producción, usa almacenamiento persistente para las imágenes; el sistema de archivos efímero de un servicio web puede perder archivos al reiniciar o desplegar.
-
-
-## Corrección de duplicación en la galería (noviembre de 2026)
-
-- Al abrir un plan existente para editarlo, el frontend limpia los campos `type="file"` y la vista previa de fotos nuevas. Esto evita que una selección que quedó en el navegador de una edición anterior se vuelva a enviar al abrir un plan que regresó de Publicado a Borrador.
-- El guardado de la galería bloquea envíos simultáneos y actualiza la lista local de URLs sin repetir rutas.
-- El backend normaliza cada lote y utiliza `ON CONFLICT DO NOTHING` para que una ruta no se inserte dos veces para el mismo plan.
-- `sql/schema.sql` elimina duplicados históricos de `(id_plan, imagen_url)` conservando la fila más antigua y crea el índice único `uq_imagenes_plan_plan_url`.
-- La fotografía principal continúa almacenándose en `planes.imagen_url`, separada de la tabla `imagenes_plan`.
-
-En desarrollo, `python app.py` llama a `PlanesController.crear_tabla()` y ejecuta el esquema. En una base ya desplegada con Gunicorn/Render, aplica primero un respaldo y ejecuta `sql/migrations/2026_11_gallery_unique.sql` directamente en PostgreSQL; no dependas del arranque de Gunicorn para aplicar migraciones.
+**Tecnologías principales:** Python, Flask, PostgreSQL, HTML, CSS y JavaScript.

@@ -1428,7 +1428,7 @@
             <div class="form-crear-container" style="max-width:760px; margin:1.5rem auto;">
                 <h1 class="titulo-seccion">Solicita más información</h1>
                 <p style="color:var(--texto-gris); margin-bottom:1.25rem;">
-                    Déjanos tus datos y un asesor se pondrá en contacto contigo.
+                    Déjanos tus datos y un asesor se pondrá en contacto contigo. Si tienes una cuenta, tu nombre y correo aparecerán automáticamente y podrás modificarlos.
                 </p>
                 <div class="caja-sugerido-ia" style="padding:1rem; margin-bottom:1.25rem;">
                     <strong>Plan seleccionado</strong>
@@ -2553,8 +2553,27 @@
                 mostrarToast("Primero selecciona un plan.", true);
                 return;
             }
+
             document.getElementById("solicitud-plan-nombre").innerText =
                 planDetalleActual.nombre;
+
+            // Si el visitante inició sesión como cliente, precargamos los datos
+            // disponibles en su cuenta. Los campos siguen siendo editables.
+            const campoNombre = document.getElementById("cliente-solicitud-nombre");
+            const campoCorreo = document.getElementById("cliente-solicitud-correo");
+            const campoTelefono = document.getElementById("cliente-solicitud-telefono");
+
+            if (estadoSesion && estadoSesion.rol === "cliente") {
+                campoNombre.value = estadoSesion.nombre || "";
+                campoCorreo.value = estadoSesion.correo || "";
+            } else {
+                // Para visitantes sin sesión se conserva el formulario manual.
+                campoNombre.value = "";
+                campoCorreo.value = "";
+            }
+
+            // El perfil actual no almacena teléfono; se solicita en cada envío.
+            campoTelefono.value = "";
             document.getElementById("formulario-solicitud-cliente").classList.remove("oculto");
             document.getElementById("solicitud-confirmacion").classList.add("oculto");
             mostrarVista("cliente-solicitud");
