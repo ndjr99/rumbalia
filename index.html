@@ -1011,6 +1011,14 @@
         .brand:hover { opacity:.88; }
         .login-brand { width: min(270px, 80%); height:auto; display:block; margin:0 auto 1.1rem; }
         .precio-oferta-anterior { color:var(--texto-gris); text-decoration:line-through; font-size:.9rem; margin-right:.35rem; }
+        .card-plan-oferta { margin-top:.45rem; }
+        .card-plan-oferta .etiqueta-descuento { margin-bottom:.25rem; }
+        .card-plan-precio-final { display:block; color:var(--azul-principal); font-size:1.02rem; line-height:1.3; }
+        .card-plan-duracion { margin-top:.2rem; }
+        #det-precio .etiqueta-descuento { margin-bottom:.55rem; }
+        .detalle-precio-anterior { color:var(--texto-gris); text-decoration:line-through; font-size:.95rem; font-weight:500; margin:.15rem 0; }
+        .detalle-precio-final { color:var(--azul-principal); font-size:1.12rem; font-weight:800; margin:.15rem 0; }
+        .detalle-vigencia-oferta { display:block; color:var(--texto-gris); font-size:.78rem; font-weight:500; margin-top:.3rem; }
         .etiqueta-descuento { display:inline-block; background:#E5F3E8; color:#276738; border-radius:999px; padding:.22rem .55rem; font-size:.78rem; font-weight:700; margin-bottom:.35rem; }
         .form-oferta { background:#F6F8FC; border:1px solid #E2EAF6; border-radius:14px; padding:1rem; margin:0 0 1.5rem; }
         .form-oferta h3 { color:var(--azul-principal); margin-bottom:.35rem; }
@@ -2278,13 +2286,38 @@
                 cont.innerHTML = `<p style="grid-column: 1/-1; color:var(--texto-gris);">No hay planes disponibles en este continente.</p>`;
             } else {
                 planes.forEach(p => {
+                    const precioBase = Number(p.costo_estimado || 0);
+                    const descuento = Math.max(0, Math.min(90, Number(p.descuento_porcentaje || 0)));
+                    const fechaHoy = new Date();
+                    const hoyLocal = [
+                        fechaHoy.getFullYear(),
+                        String(fechaHoy.getMonth() + 1).padStart(2, "0"),
+                        String(fechaHoy.getDate()).padStart(2, "0")
+                    ].join("-");
+                    const inicioOferta = p.oferta_fecha_inicio ? String(p.oferta_fecha_inicio).slice(0, 10) : "";
+                    const finOferta = p.oferta_fecha_fin ? String(p.oferta_fecha_fin).slice(0, 10) : "";
+                    const ofertaVigente = descuento > 0
+                        && inicioOferta && finOferta
+                        && hoyLocal >= inicioOferta && hoyLocal <= finOferta;
+
+                    const bloquePrecio = ofertaVigente
+                        ? `
+                            <div class="card-plan-oferta">
+                                <span class="etiqueta-descuento">${descuento}% de descuento</span>
+                                <div class="precio-oferta-anterior">${precioBase.toLocaleString("es-CO")} COP</div>
+                                <strong class="card-plan-precio-final">${Math.round(precioBase * (1 - descuento / 100)).toLocaleString("es-CO")} COP</strong>
+                            </div>
+                            <p class="card-plan-duracion">${p.duracion_dias} días</p>
+                        `
+                        : `<p>Desde ${precioBase.toLocaleString("es-CO")} COP · ${p.duracion_dias} días</p>`;
+
                     cont.innerHTML += `
                         <div class="card-plan" onclick="verDetallePlan(${p.id_plan})">
-                            <img src="${p.imagen_url || ''}" alt="${p.nombre}" onerror="usarFallbackImg(this, '${p.nombre}')">
+                            <img src="${p.imagen_url || ''}" alt="${escapeHTML(p.nombre)}" onerror="usarFallbackImg(this, '${String(p.nombre || '').replace(/'/g, "\\'")}')">
                             <div class="card-plan-info">
                                 <h3>${escapeHTML(p.nombre)}</h3>
                                 <span class="card-plan-lugar">${escapeHTML(p.destino)}, ${escapeHTML(p.pais || "")}</span>
-                                <p>Desde ${Number(p.costo_estimado).toLocaleString("es-CO")} COP · ${p.duracion_dias} días</p>
+                                ${bloquePrecio}
                             </div>
                         </div>
                     `;
@@ -2303,7 +2336,36 @@
                 if (!res.ok) throw new Error(p.error || "No se pudo cargar el plan.");
                 planDetalleActual = p;
                 document.getElementById("det-titulo").innerText = p.nombre;
-                document.getElementById("det-precio").innerText = `Precio: desde $${Number(p.costo_estimado).toLocaleString("es-CO")} COP`;
+
+                // La vista de detalle es pública y compartida por todos los roles.
+                // Solo se muestra la promoción si el plan está dentro de su vigencia.
+                const precioContenedor = document.getElementById("det-precio");
+                const precioBase = Number(p.costo_estimado || 0);
+                const descuento = Math.max(0, Math.min(90, Number(p.descuento_porcentaje || 0)));
+                const fechaHoy = new Date();
+                const hoyLocal = [
+                    fechaHoy.getFullYear(),
+                    String(fechaHoy.getMonth() + 1).padStart(2, "0"),
+                    String(fechaHoy.getDate()).padStart(2, "0")
+                ].join("-");
+                const inicioOferta = p.oferta_fecha_inicio ? String(p.oferta_fecha_inicio).slice(0, 10) : "";
+                const finOferta = p.oferta_fecha_fin ? String(p.oferta_fecha_fin).slice(0, 10) : "";
+                const ofertaVigente = descuento > 0
+                    && inicioOferta && finOferta
+                    && hoyLocal >= inicioOferta && hoyLocal <= finOferta;
+
+                if (ofertaVigente) {
+                    const precioFinal = Math.round(precioBase * (1 - descuento / 100));
+                    precioContenedor.innerHTML = `
+                        <span class="etiqueta-descuento">${descuento}% de descuento</span>
+                        <div class="detalle-precio-anterior">${precioBase.toLocaleString("es-CO")} COP</div>
+                        <div class="detalle-precio-final">Precio con descuento: ${precioFinal.toLocaleString("es-CO")} COP</div>
+                        <small class="detalle-vigencia-oferta">Oferta válida hasta ${finOferta}</small>
+                    `;
+                } else {
+                    precioContenedor.textContent = `Precio: desde $${precioBase.toLocaleString("es-CO")} COP`;
+                }
+
                 document.getElementById("det-sub").innerText = `${p.destino} · ${p.datos_viajero.duracion_dias} días`;
                 document.getElementById("det-descripcion").innerText = p.descripcion || `Experiencia en ${p.destino}, diseñada para un viajero tipo ${p.datos_viajero.tipo_viajero}. Intereses: ${p.datos_viajero.intereses}.`;
                 renderizarGaleriaPlan(p);

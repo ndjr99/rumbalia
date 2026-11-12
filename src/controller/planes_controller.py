@@ -180,7 +180,10 @@ class PlanesController:
                     p.incluye,
                     p.no_incluye,
                     COALESCE(p.imagen_url, d.imagen_url),
-                    p.descripcion
+                    p.descripcion,
+                    COALESCE(p.descuento_porcentaje, 0),
+                    p.oferta_fecha_inicio,
+                    p.oferta_fecha_fin
                 FROM planes p
                 JOIN destinos d ON p.id_destino = d.id_destino
                 WHERE p.id_plan = %s;
@@ -274,7 +277,10 @@ class PlanesController:
                 imagenes=imagenes_plan,
                 decision_revision=decision_revision,
                 motivo_rechazo=motivo_rechazo,
-                descripcion=fila[13] or ""
+                descripcion=fila[13] or "",
+                descuento_porcentaje=float(fila[14] or 0),
+                oferta_fecha_inicio=fila[15],
+                oferta_fecha_fin=fila[16]
             )
 
         finally:
@@ -300,7 +306,10 @@ class PlanesController:
                     p.costo_estimado,
                     p.duracion_dias,
                     p.estado,
-                    p.intereses
+                    p.intereses,
+                    COALESCE(p.descuento_porcentaje, 0),
+                    p.oferta_fecha_inicio,
+                    p.oferta_fecha_fin
                 FROM planes p
                 JOIN destinos d ON p.id_destino = d.id_destino
                 WHERE p.estado = 'Publicado'
@@ -327,7 +336,10 @@ class PlanesController:
                     "costo_estimado": float(fila[6] or 0),
                     "duracion_dias": fila[7],
                     "estado": fila[8],
-                    "intereses": fila[9] or ""
+                    "intereses": fila[9] or "",
+                    "descuento_porcentaje": float(fila[10] or 0),
+                    "oferta_fecha_inicio": fila[11].isoformat() if fila[11] else None,
+                    "oferta_fecha_fin": fila[12].isoformat() if fila[12] else None
                 }
                 for fila in cursor.fetchall()
             ]

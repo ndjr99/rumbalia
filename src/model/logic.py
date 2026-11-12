@@ -196,7 +196,10 @@ class PlanTuristico:
         imagenes=None,
         decision_revision=None,
         motivo_rechazo="",
-        descripcion=""
+        descripcion="",
+        descuento_porcentaje=0,
+        oferta_fecha_inicio=None,
+        oferta_fecha_fin=None
     ):
         self.id_plan = id_plan
         self.nombre = nombre
@@ -213,6 +216,9 @@ class PlanTuristico:
         self.decision_revision = decision_revision
         self.motivo_rechazo = motivo_rechazo or ""
         self.descripcion = str(descripcion or "").strip()
+        self.descuento_porcentaje = float(descuento_porcentaje or 0)
+        self.oferta_fecha_inicio = oferta_fecha_inicio
+        self.oferta_fecha_fin = oferta_fecha_fin
 
     def enviar_a_revision(self):
         if not self.itinerario or not self.itinerario.esta_completo(
@@ -238,6 +244,17 @@ class PlanTuristico:
             "datos_viajero": self.datos_viajero.to_dict(),
             "id_asesor": self.id_asesor,
             "costo_estimado": self.costo_estimado,
+            "descuento_porcentaje": self.descuento_porcentaje,
+            "oferta_fecha_inicio": (
+                self.oferta_fecha_inicio.isoformat()
+                if hasattr(self.oferta_fecha_inicio, "isoformat")
+                else self.oferta_fecha_inicio
+            ),
+            "oferta_fecha_fin": (
+                self.oferta_fecha_fin.isoformat()
+                if hasattr(self.oferta_fecha_fin, "isoformat")
+                else self.oferta_fecha_fin
+            ),
             "estado": self.estado,
             "imagen_url": self.imagen_url,
             "imagenes": self.imagenes,
